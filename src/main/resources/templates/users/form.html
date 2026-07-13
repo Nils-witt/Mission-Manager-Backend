@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head}"></th:block>
+    <title th:text="${isNew} ? 'Create User - Mission Manager' : 'Edit User - Mission Manager'"></title>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header(${username})}"></div>
+<main class="container" style="max-width: 640px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0" th:text="${isNew} ? 'Create User' : 'Edit User'"></h1>
+        <a th:if="${!isNew}" th:href="@{/audit-logs(entityName='User', entityId=${userId})}"
+           class="btn btn-outline-secondary btn-sm">View changes</a>
+    </div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <form th:action="${isNew} ? @{/users} : @{/users/{id}(id=${userId})}" th:object="${form}" method="post">
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" th:field="*{username}" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">First name</label>
+            <input type="text" class="form-control" th:field="*{firstName}" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last name</label>
+            <input type="text" class="form-control" th:field="*{lastName}" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" th:field="*{email}"/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" th:field="*{password}"
+                   th:placeholder="${isNew} ? 'Required' : 'Leave blank to keep unchanged'"/>
+        </div>
+        <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" th:field="*{enabled}"/>
+            <label class="form-check-label">Enabled</label>
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" th:field="*{locked}"/>
+            <label class="form-check-label">Locked</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Primary Tenant</label>
+            <select class="form-select" th:field="*{primaryTenantId}" required>
+                <option value="" disabled>Select a tenant…</option>
+                <option th:each="tenant : ${tenants}" th:value="${tenant.id}" th:text="${tenant.name}"></option>
+            </select>
+        </div>
+
+        <fieldset class="mb-3">
+            <legend class="h6">Security groups</legend>
+            <div class="form-check" th:each="group : ${securityGroups}">
+                <input type="checkbox" class="form-check-input" th:field="*{securityGroupIds}"
+                       th:value="${group.id}"/>
+                <label class="form-check-label" th:text="${group.name}"></label>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary" th:text="${isNew} ? 'Create' : 'Save'"></button>
+        <a th:href="@{/users}" class="btn btn-link">Cancel</a>
+    </form>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

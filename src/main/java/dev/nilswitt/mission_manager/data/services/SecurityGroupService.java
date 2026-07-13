@@ -1,0 +1,88 @@
+package dev.nilswitt.mission_manager.data.services;
+
+
+import dev.nilswitt.mission_manager.data.dto.SecurityGroupDto;
+import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.User;
+import dev.nilswitt.mission_manager.data.repositories.SecurityGroupRepository;
+import dev.nilswitt.mission_manager.security.PermissionVerifier;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class SecurityGroupService {
+
+    private final SecurityGroupRepository securityGroupRepository;
+    private final SecurityGroupPermissionService securityGroupPermissionService;
+    private final PermissionVerifier permissionVerifier;
+
+    public SecurityGroupService(
+        SecurityGroupRepository securityGroupRepository,
+        SecurityGroupPermissionService securityGroupPermissionService,
+        PermissionVerifier permissionVerifier
+    ) {
+        this.securityGroupRepository = securityGroupRepository;
+        this.securityGroupPermissionService = securityGroupPermissionService;
+        this.permissionVerifier = permissionVerifier;
+    }
+
+    public List<SecurityGroup> findAll() {
+        return securityGroupRepository.findAll();
+    }
+
+    public Optional<SecurityGroup> findById(UUID id) {
+        return securityGroupRepository.findById(id);
+    }
+
+    public Optional<SecurityGroup> findByName(String name) {
+        return securityGroupRepository.findByName(name);
+    }
+
+    public List<SecurityGroup> findBySsoGroupName(String ssoGroupName) {
+        return securityGroupRepository.findBySsoGroupName(ssoGroupName);
+    }
+
+    public SecurityGroup save(SecurityGroup securityGroup) {
+        return securityGroupRepository.save(securityGroup);
+    }
+
+    public void deleteById(UUID id) {
+        securityGroupRepository.deleteById(id);
+    }
+
+    public void deletePermissionsBySecurityGroup(SecurityGroup securityGroup) {
+        securityGroupPermissionService.deleteBySecurityGroup(securityGroup);
+    }
+
+    public void removeFromAllUsers(UUID groupId) {
+        securityGroupRepository.removeFromAllUsers(groupId);
+    }
+
+    @Transactional
+    public void deleteWithCleanup(SecurityGroup securityGroup) {
+        deletePermissionsBySecurityGroup(securityGroup);
+        removeFromAllUsers(securityGroup.getId());
+        securityGroupRepository.deleteById(securityGroup.getId());
+    }
+
+
+    public SecurityGroupDto toDto(SecurityGroup securityGroup, User actingUser) {
+        SecurityGroupDto dto = new SecurityGroupDto(securityGroup);
+        dto.setPermissions(this.permissionVerifier.getScopes(securityGroup, actingUser));
+        return dto;
+    }
+
+    public SecurityGroup fromDto(SecurityGroupDto dto) {
+        SecurityGroup securityGroup = new SecurityGroup();
+        securityGroup.setName(dto.getName());
+        securityGroup.setSsoGroupName(dto.getSsoGroupName());
+        securityGroup.setRoles(new HashSet<>(dto.getRoles()));
+
+        return securityGroup;
+    }
+}

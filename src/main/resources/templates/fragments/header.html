@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="header(username)" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/}">Mission Manager</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/users}">Users</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/missions}">Missions</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/security-groups}">Security Groups</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/tenants}">Tenants</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/audit-logs}">Audit Log</a></li>
+            </ul>
+            <form th:action="@{/logout}" method="post" class="d-flex align-items-center mb-0">
+                <span class="navbar-text text-light me-3" th:text="'Signed in as ' + ${username}"></span>
+                <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+</body>
+</html>

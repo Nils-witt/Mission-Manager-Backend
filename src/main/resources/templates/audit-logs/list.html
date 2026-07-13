@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head}"></th:block>
+    <title>Audit Log - Mission Manager</title>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header(${username})}"></div>
+<main class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0">Audit Log</h1>
+            <p class="text-muted mb-0" th:if="${entityName != null and entityId != null}">
+                Showing changes for <strong th:text="${entityName}"></strong>
+                <code th:text="${entityId}"></code>
+            </p>
+            <p class="text-muted mb-0" th:if="${entityName != null and entityId == null}">
+                Showing changes for all <strong th:text="${entityName}"></strong> records
+            </p>
+            <p class="text-muted mb-0" th:if="${entityName == null}">
+                Showing all changes (most recent 200)
+            </p>
+        </div>
+        <a th:if="${entityName != null}" th:href="@{/audit-logs}" class="btn btn-outline-secondary btn-sm">Clear
+            filter</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th>When</th>
+                <th>Entity</th>
+                <th>Change</th>
+                <th>By</th>
+                <th>Details</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${logs}">
+                <td th:text="${#temporals.format(entry.log.changedAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td>
+                    <a th:href="@{/audit-logs(entityName=${entry.log.entityName}, entityId=${entry.log.entityId})}"
+                       th:text="${entry.log.entityName}"></a>
+                    <br/>
+                    <code class="text-muted" th:text="${entry.log.entityId}"></code>
+                </td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${entry.log.changeType.name() == 'CREATED'} ? 'text-bg-success' : (${entry.log.changeType.name() == 'DELETED'} ? 'text-bg-danger' : 'text-bg-info')"
+                          th:text="${entry.log.changeType}"></span>
+                </td>
+                <td th:text="${entry.log.changedBy}"></td>
+                <td>
+                    <table class="table table-sm mb-0" th:if="${!entry.changes.isEmpty()}">
+                        <tbody>
+                        <tr th:each="change : ${entry.changes}">
+                            <td class="text-nowrap fw-semibold" th:text="${change.field}"></td>
+                            <td class="text-muted" th:text="${change.oldValue} ?: '—'"></td>
+                            <td>&rarr;</td>
+                            <td th:text="${change.newValue} ?: '—'"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <span class="text-muted" th:if="${entry.changes.isEmpty()}">—</span>
+                </td>
+            </tr>
+            <tr th:if="${logs.isEmpty()}">
+                <td colspan="5" class="text-center text-muted">No audit log entries.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
