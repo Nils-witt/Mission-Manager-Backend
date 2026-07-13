@@ -11,6 +11,7 @@
         <h1 class="h4 mb-0">Qualifications</h1>
         <div>
             <a th:href="@{/audit-logs(entityName='Qualification')}" class="btn btn-outline-secondary">History</a>
+            <a th:href="@{/qualification-types}" class="btn btn-outline-secondary">Manage types</a>
             <a th:if="${canCreate}" th:href="@{/qualifications/new}" class="btn btn-primary">Create qualification</a>
         </div>
     </div>

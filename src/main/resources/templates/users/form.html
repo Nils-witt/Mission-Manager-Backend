@@ -6,7 +6,7 @@
 </head>
 <body>
 <div th:replace="~{fragments/header :: header(${username})}"></div>
-<main class="container" style="max-width: 640px;">
+<main class="container" style="max-width: 720px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 mb-0" th:text="${isNew} ? 'Create User' : 'Edit User'"></h1>
         <a th:if="${!isNew}" th:href="@{/audit-logs(entityName='User', entityId=${userId})}"
@@ -65,6 +65,89 @@
         <button type="submit" class="btn btn-primary" th:text="${isNew} ? 'Create' : 'Save'"></button>
         <a th:href="@{/users}" class="btn btn-link">Cancel</a>
     </form>
+
+    <section th:if="${!isNew}" class="mt-4">
+        <h2 class="h5">Qualifications</h2>
+        <div th:if="${qualificationError}" class="alert alert-danger" th:text="${qualificationError}"></div>
+
+        <div class="table-responsive mb-3" th:unless="${#lists.isEmpty(userQualifications)}">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Qualification</th>
+                    <th>Status</th>
+                    <th>Since</th>
+                    <th>Expiry</th>
+                    <th>Certificate</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="uq : ${userQualifications}">
+                    <td th:text="${uq.qualification.name}"></td>
+                    <td>
+                        <span class="badge" th:classappend="${uq.active} ? 'text-bg-success' : 'text-bg-secondary'"
+                              th:text="${uq.active} ? 'Active' : 'Inactive'"></span>
+                    </td>
+                    <td th:text="${uq.since}"></td>
+                    <td>
+                        <span th:if="${uq.expiry == null}" class="text-muted">-</span>
+                        <span th:if="${uq.expiry != null}" th:text="${uq.expiry}"
+                              th:classappend="${uq.expired} ? 'text-danger fw-semibold' : ''"></span>
+                    </td>
+                    <td>
+                        <a th:if="${uq.hasCertificate()}"
+                           th:href="@{/users/{uid}/qualifications/{id}/certificate(uid=${userId},id=${uq.id})}">Download</a>
+                        <span th:unless="${uq.hasCertificate()}" class="text-muted">-</span>
+                    </td>
+                    <td class="text-end">
+                        <form th:action="@{/users/{uid}/qualifications/{id}/toggle-active(uid=${userId},id=${uq.id})}"
+                              method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                    th:text="${uq.active} ? 'Deactivate' : 'Activate'"></button>
+                        </form>
+                        <form th:action="@{/users/{uid}/qualifications/{id}/delete(uid=${userId},id=${uq.id})}"
+                              method="post" class="d-inline" onsubmit="return confirm('Remove this qualification?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p th:if="${#lists.isEmpty(userQualifications)}" class="text-muted">No qualifications assigned yet.</p>
+
+        <h3 class="h6">Add qualification</h3>
+        <form th:action="@{/users/{uid}/qualifications(uid=${userId})}" method="post"
+              enctype="multipart/form-data" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Qualification</label>
+                <select class="form-select" name="qualificationId" required>
+                    <option value="" disabled selected>Select…</option>
+                    <option th:each="q : ${qualifications}" th:value="${q.id}" th:text="${q.name}"></option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Since</label>
+                <input type="date" class="form-control" name="since" required/>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Expiry</label>
+                <input type="date" class="form-control" name="expiry"/>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Certificate</label>
+                <input type="file" class="form-control" name="certificate"/>
+            </div>
+            <div class="col-md-2 form-check">
+                <input type="checkbox" class="form-check-input" id="uqActive" name="active" value="true" checked/>
+                <label class="form-check-label" for="uqActive">Active</label>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+        </form>
+    </section>
 </main>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>

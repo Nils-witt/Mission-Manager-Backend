@@ -3,8 +3,10 @@ package dev.nilswitt.mission_manager.web;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.data.entities.User;
+import dev.nilswitt.mission_manager.data.services.QualificationService;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
 import dev.nilswitt.mission_manager.data.services.TenantService;
+import dev.nilswitt.mission_manager.data.services.UserQualificationService;
 import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,6 +32,8 @@ public class UserManagementController {
     private final UserService userService;
     private final SecurityGroupService securityGroupService;
     private final TenantService tenantService;
+    private final QualificationService qualificationService;
+    private final UserQualificationService userQualificationService;
     private final PermissionVerifier permissionVerifier;
     private final PasswordEncoder passwordEncoder;
 
@@ -37,12 +41,16 @@ public class UserManagementController {
             UserService userService,
             SecurityGroupService securityGroupService,
             TenantService tenantService,
+            QualificationService qualificationService,
+            UserQualificationService userQualificationService,
             PermissionVerifier permissionVerifier,
             PasswordEncoder passwordEncoder
     ) {
         this.userService = userService;
         this.securityGroupService = securityGroupService;
         this.tenantService = tenantService;
+        this.qualificationService = qualificationService;
+        this.userQualificationService = userQualificationService;
         this.permissionVerifier = permissionVerifier;
         this.passwordEncoder = passwordEncoder;
     }
@@ -99,7 +107,12 @@ public class UserManagementController {
     }
 
     @GetMapping("/{id}/edit")
-    public String editForm(@AuthenticationPrincipal User currentUser, @PathVariable UUID id, Model model) {
+    public String editForm(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestParam(required = false) String qualificationError,
+            Model model
+    ) {
         User target = findUserOrThrow(id);
         requireScope(currentUser, EDIT, target);
 
@@ -121,6 +134,9 @@ public class UserManagementController {
         model.addAttribute("tenants", tenantService.findAll());
         model.addAttribute("isNew", false);
         model.addAttribute("userId", id);
+        model.addAttribute("qualifications", qualificationService.findAll());
+        model.addAttribute("userQualifications", userQualificationService.findByUser(target));
+        model.addAttribute("qualificationError", qualificationError);
         return "users/form";
     }
 
