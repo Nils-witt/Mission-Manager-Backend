@@ -21,6 +21,10 @@
             <tr>
                 <th>Name</th>
                 <th>Tenant</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Street Address</th>
+                <th>Available Users</th>
                 <th class="text-end">Actions</th>
             </tr>
             </thead>
@@ -28,6 +32,10 @@
             <tr th:each="m : ${missions}">
                 <td th:text="${m.name}"></td>
                 <td th:text="${m.tenant.name}"></td>
+                <td th:text="${m.startTime != null} ? ${#temporals.format(m.startTime, 'yyyy-MM-dd HH:mm')} : '-'"></td>
+                <td th:text="${m.endTime != null} ? ${#temporals.format(m.endTime, 'yyyy-MM-dd HH:mm')} : '-'"></td>
+                <td th:text="${m.streetAddress} ?: '-'"></td>
+                <td><span class="badge text-bg-info" th:text="${#sets.size(m.availableUsers)} + ' users'"></span></td>
                 <td class="text-end">
                     <a th:href="@{/missions/{id}/edit(id=${m.id})}" class="btn btn-sm btn-outline-secondary">Edit</a>
                     <form th:action="@{/missions/{id}/delete(id=${m.id})}" method="post" class="d-inline"

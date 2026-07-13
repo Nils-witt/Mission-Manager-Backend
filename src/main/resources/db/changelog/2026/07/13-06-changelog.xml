@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1789900400000-1" author="nilswitt">
+        <createTable tableName="mission_available_users">
+            <column name="mission_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_mission_available_users"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_mission_available_users"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="1789900400000-2" author="nilswitt">
+        <addForeignKeyConstraint baseColumnNames="mission_id" baseTableName="mission_available_users"
+                                  constraintName="fk_missionavailableusers_on_mission" referencedColumnNames="id"
+                                  referencedTableName="mission" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="1789900400000-3" author="nilswitt">
+        <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="mission_available_users"
+                                  constraintName="fk_missionavailableusers_on_user" referencedColumnNames="id"
+                                  referencedTableName="users" onDelete="CASCADE"/>
+    </changeSet>
+</databaseChangeLog>
