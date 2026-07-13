@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head}"></th:block>
+    <title>Send Email - Mission Manager</title>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header(${username})}"></div>
+<main class="container" style="max-width: 680px;">
+    <h1 class="h4 mb-3">Send Email</h1>
+    <div th:if="${sent}" class="alert alert-success">Email sent.</div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <form th:action="@{/emails}" th:object="${form}" method="post">
+
+        <div th:if="${lockRecipient}" class="mb-3">
+            <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-0">
+                <span>Sending to: <strong th:text="${recipientLabel}"></strong></span>
+                <a th:href="@{/emails}" class="btn btn-sm btn-outline-secondary">Change recipient</a>
+            </div>
+            <input type="hidden" th:field="*{recipientType}"/>
+            <input type="hidden" th:field="*{recipientId}"/>
+        </div>
+
+        <div th:unless="${lockRecipient}">
+            <div class="mb-3">
+                <label class="form-label d-block">Send to</label>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="recipientType" id="typeUser" value="USER"
+                           autocomplete="off" th:checked="${form.recipientType == 'USER' or form.recipientType == null}"/>
+                    <label class="btn btn-outline-primary" for="typeUser">User</label>
+
+                    <input type="radio" class="btn-check" name="recipientType" id="typeTenant" value="TENANT"
+                           autocomplete="off" th:checked="${form.recipientType == 'TENANT'}"/>
+                    <label class="btn btn-outline-primary" for="typeTenant">Tenant</label>
+
+                    <input type="radio" class="btn-check" name="recipientType" id="typeGroup" value="GROUP"
+                           autocomplete="off" th:checked="${form.recipientType == 'GROUP'}"/>
+                    <label class="btn btn-outline-primary" for="typeGroup">Security Group</label>
+                </div>
+            </div>
+
+            <div class="mb-3" id="picker-USER">
+                <label class="form-label">User</label>
+                <select class="form-select" name="recipientId">
+                    <option value="">Select a user…</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.username}"
+                            th:selected="${form.recipientId == u.id}"></option>
+                </select>
+            </div>
+            <div class="mb-3" id="picker-TENANT">
+                <label class="form-label">Tenant</label>
+                <select class="form-select" name="recipientId">
+                    <option value="">Select a tenant…</option>
+                    <option th:each="t : ${tenants}" th:value="${t.id}" th:text="${t.name}"
+                            th:selected="${form.recipientId == t.id}"></option>
+                </select>
+            </div>
+            <div class="mb-3" id="picker-GROUP">
+                <label class="form-label">Security Group</label>
+                <select class="form-select" name="recipientId">
+                    <option value="">Select a security group…</option>
+                    <option th:each="g : ${groups}" th:value="${g.id}" th:text="${g.name}"
+                            th:selected="${form.recipientId == g.id}"></option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Subject</label>
+            <input type="text" class="form-control" th:field="*{subject}" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" rows="8" th:field="*{body}" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:unless="${lockRecipient}">
+    function updateRecipientPickers() {
+        var checked = document.querySelector('input[name="recipientType"]:checked');
+        var type = checked ? checked.value : null;
+        ['USER', 'TENANT', 'GROUP'].forEach(function (t) {
+            var picker = document.getElementById('picker-' + t);
+            var select = picker.querySelector('select');
+            if (t === type) {
+                picker.classList.remove('d-none');
+                select.disabled = false;
+            } else {
+                picker.classList.add('d-none');
+                select.disabled = true;
+            }
+        });
+    }
+
+    document.querySelectorAll('input[name="recipientType"]').forEach(function (radio) {
+        radio.addEventListener('change', updateRecipientPickers);
+    });
+    updateRecipientPickers();
+</script>
+</body>
+</html>

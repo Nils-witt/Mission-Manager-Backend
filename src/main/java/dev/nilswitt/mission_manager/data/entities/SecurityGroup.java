@@ -95,5 +95,6 @@ public class SecurityGroup extends AbstractEntity {
         PATIENT,
         UHS,
         AUDITLOG,
+        EMAIL,
     }
 }

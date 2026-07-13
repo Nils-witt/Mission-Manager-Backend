@@ -26,6 +26,8 @@
             <tr th:each="t : ${tenants}">
                 <td th:text="${t.name}"></td>
                 <td class="text-end">
+                    <a th:href="@{/emails(recipientType='TENANT', recipientId=${t.id})}"
+                       class="btn btn-sm btn-outline-primary">Email</a>
                     <a th:href="@{/tenants/{id}/edit(id=${t.id})}" class="btn btn-sm btn-outline-secondary">Edit</a>
                     <form th:action="@{/tenants/{id}/delete(id=${t.id})}" method="post" class="d-inline"
                           onsubmit="return confirm('Delete this tenant?');">

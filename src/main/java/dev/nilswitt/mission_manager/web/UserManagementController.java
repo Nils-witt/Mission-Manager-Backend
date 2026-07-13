@@ -183,6 +183,9 @@ public class UserManagementController {
     private void applyPrimaryTenant(User user, UUID tenantId) {
         Tenant tenant = tenantService.findById(tenantId).orElse(null);
         user.setPrimaryTenant(tenant);
+        if (tenant != null) {
+            user.getTenants().add(tenant);
+        }
     }
 
     private User findUserOrThrow(UUID id) {

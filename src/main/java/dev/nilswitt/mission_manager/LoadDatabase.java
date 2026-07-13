@@ -68,6 +68,7 @@ class LoadDatabase {
                 adminUser.addSecurityGroup(adminGroup);
                 adminUser.addSecurityGroup(everyoneGroup);
                 adminUser.setPrimaryTenant(defaultTenant);
+                adminUser.getTenants().add(defaultTenant);
                 repository.save(adminUser);
             } else {
                 if (adminUserRecord.force().equalsIgnoreCase("true")) {
@@ -77,6 +78,7 @@ class LoadDatabase {
                     adminUser.setEnabled(true);
                     adminUser.addSecurityGroup(adminGroup);
                     adminUser.setPrimaryTenant(defaultTenant);
+                    adminUser.getTenants().add(defaultTenant);
                     repository.save(adminUser);
                 }
             }

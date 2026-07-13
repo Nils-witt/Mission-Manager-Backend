@@ -34,6 +34,8 @@
                 <td th:text="${g.ssoGroupName}"></td>
                 <td><span class="badge text-bg-info" th:text="${#sets.size(g.roles)} + ' roles'"></span></td>
                 <td class="text-end">
+                    <a th:href="@{/emails(recipientType='GROUP', recipientId=${g.id})}"
+                       class="btn btn-sm btn-outline-primary">Email</a>
                     <a th:href="@{/security-groups/{id}/edit(id=${g.id})}" class="btn btn-sm btn-outline-secondary"
                        th:text="${g.builtIn} ? 'View' : 'Edit'"></a>
                     <form th:if="${!g.builtIn}"

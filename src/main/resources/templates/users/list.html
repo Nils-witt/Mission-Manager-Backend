@@ -42,6 +42,8 @@
                           th:text="${u.locked} ? 'Yes' : 'No'"></span>
                 </td>
                 <td class="text-end">
+                    <a th:href="@{/emails(recipientType='USER', recipientId=${u.id})}"
+                       class="btn btn-sm btn-outline-primary">Email</a>
                     <a th:href="@{/users/{id}/edit(id=${u.id})}" class="btn btn-sm btn-outline-secondary">Edit</a>
                     <form th:action="@{/users/{id}/delete(id=${u.id})}" method="post" class="d-inline"
                           onsubmit="return confirm('Delete this user?');">
