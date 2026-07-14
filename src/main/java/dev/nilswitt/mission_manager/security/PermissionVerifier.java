@@ -2,6 +2,7 @@ package dev.nilswitt.mission_manager.security;
 
 
 import dev.nilswitt.mission_manager.data.entities.*;
+import dev.nilswitt.mission_manager.data.repositories.UserRepository;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupPermissionService;
 import dev.nilswitt.mission_manager.data.services.UserPermissionService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,14 +17,17 @@ public final class PermissionVerifier {
 
     private final UserPermissionService userPermissionService;
     private final SecurityGroupPermissionService securityGroupPermissionService;
+    private final UserRepository userRepository;
 
 
     private PermissionVerifier(
             UserPermissionService userPermissionService,
-            SecurityGroupPermissionService securityGroupPermissionService
+            SecurityGroupPermissionService securityGroupPermissionService,
+            UserRepository userRepository
     ) {
         this.userPermissionService = userPermissionService;
         this.securityGroupPermissionService = securityGroupPermissionService;
+        this.userRepository = userRepository;
     }
 
     public static boolean testScope(
@@ -223,6 +227,10 @@ public final class PermissionVerifier {
             }
         }
 
+        if (isMemberOfTenant(user, mission.getTenant())) {
+            scopes.add(SecurityGroup.UserRoleScopeEnum.VIEW);
+        }
+
         this.userPermissionService.findByUserAndMission(user, mission).ifPresent(perm -> scopes.add(perm.getScope()));
         for (SecurityGroup sg : user.getSecurityGroups()) {
             this.securityGroupPermissionService.findBySecurityGroupAndMission(sg, mission)
@@ -232,6 +240,18 @@ public final class PermissionVerifier {
         }
 
         return scopes;
+    }
+
+    /**
+     * Looked up via a repository query rather than {@code user.getTenants()} because the
+     * {@code User} behind {@code @AuthenticationPrincipal} is detached and its lazy tenants
+     * collection cannot be initialized outside the session it was originally loaded in.
+     */
+    private boolean isMemberOfTenant(User user, Tenant tenant) {
+        if (tenant == null || user == null || user.getId() == null) {
+            return false;
+        }
+        return userRepository.existsByIdAndTenants_Id(user.getId(), tenant.getId());
     }
 
     public Set<SecurityGroup.UserRoleScopeEnum> getScopes(User target, User user) {

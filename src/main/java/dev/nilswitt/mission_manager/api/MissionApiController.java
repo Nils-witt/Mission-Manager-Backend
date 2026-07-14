@@ -50,9 +50,9 @@ public class MissionApiController {
 
     @GetMapping
     public List<MissionResponse> list(@AuthenticationPrincipal User currentUser) {
-        requireScope(currentUser, VIEW);
         return missionService.findAll().stream()
             .map(mission -> MissionResponse.from(mission, permissionVerifier.getScopes(mission, currentUser)))
+            .filter(response -> response.permissions().contains(VIEW))
             .toList();
     }
 
