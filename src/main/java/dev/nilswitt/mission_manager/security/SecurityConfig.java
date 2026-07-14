@@ -93,6 +93,7 @@ class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/error").permitAll();
                 auth.requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll();
+                auth.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
                 auth.anyRequest().authenticated();
             })
             .formLogin(form -> form.loginPage("/login").permitAll())

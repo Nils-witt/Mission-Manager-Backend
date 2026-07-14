@@ -19,6 +19,7 @@
                 <li class="nav-item"><a class="nav-link" th:href="@{/tenants}">Tenants</a></li>
                 <li class="nav-item"><a class="nav-link" th:href="@{/audit-logs}">Audit Log</a></li>
                 <li class="nav-item"><a class="nav-link" th:href="@{/emails}">Send Email</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/swagger-ui.html}" target="_blank">API Docs</a></li>
             </ul>
             <form th:action="@{/logout}" method="post" class="d-flex align-items-center mb-0">
                 <span class="navbar-text text-light me-3" th:text="'Signed in as ' + ${username}"></span>

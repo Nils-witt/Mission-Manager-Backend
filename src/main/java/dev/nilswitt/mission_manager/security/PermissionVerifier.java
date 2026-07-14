@@ -198,6 +198,22 @@ public final class PermissionVerifier {
         };
     }
 
+    /**
+     * Blanket, type-level scopes only - for entity types that have no per-instance permission
+     * overrides (i.e. everything except {@link Mission} and {@link User}).
+     */
+    public Set<SecurityGroup.UserRoleScopeEnum> getScopes(SecurityGroup.UserRoleTypeEnum type, User user) {
+        HashSet<SecurityGroup.UserRoleScopeEnum> scopes = new HashSet<>();
+
+        for (SecurityGroup.UserRoleScopeEnum scope : SecurityGroup.UserRoleScopeEnum.values()) {
+            if (hasScope(user, type, scope)) {
+                scopes.add(scope);
+            }
+        }
+
+        return scopes;
+    }
+
     public Set<SecurityGroup.UserRoleScopeEnum> getScopes(Mission mission, User user) {
         HashSet<SecurityGroup.UserRoleScopeEnum> scopes = new HashSet<>();
 
