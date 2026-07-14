@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1789999300000-1" author="nilswitt">
+        <dropColumn tableName="security_group" columnName="roles"/>
+    </changeSet>
+    <changeSet id="1789999300000-2" author="nilswitt">
+        <createTable tableName="security_group_role">
+            <column name="group_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scope" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="1789999300000-3" author="nilswitt">
+        <addForeignKeyConstraint baseColumnNames="group_id" baseTableName="security_group_role"
+                                  constraintName="FK_SECURITY_GROUP_ROLE_ON_GROUP" referencedColumnNames="id"
+                                  referencedTableName="security_group"/>
+    </changeSet>
+</databaseChangeLog>

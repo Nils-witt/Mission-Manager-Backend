@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api.dto;
 
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 
 import java.time.Instant;
 import java.util.Set;
@@ -12,7 +13,7 @@ public record SecurityGroupResponse(
     Instant updatedAt,
     String name,
     String ssoGroupName,
-    Set<String> roles,
+    Set<SecurityRole> roles,
     boolean builtIn,
     Set<SecurityGroup.UserRoleScopeEnum> permissions
 ) {

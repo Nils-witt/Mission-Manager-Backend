@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.web;
 
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.*;
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleTypeEnum.SECURITYGROUP;
@@ -60,7 +63,7 @@ public class SecurityGroupManagementController {
     ) {
         requireScope(currentUser, CREATE);
 
-        SecurityGroup group = new SecurityGroup(form.getName(), new HashSet<>(form.getRoles()));
+        SecurityGroup group = new SecurityGroup(form.getName(), parseRoles(form.getRoles()));
         group.setSsoGroupName(form.getSsoGroupName() == null ? "" : form.getSsoGroupName());
 
         try {
@@ -80,7 +83,7 @@ public class SecurityGroupManagementController {
         SecurityGroupFormModel form = new SecurityGroupFormModel();
         form.setName(target.getName());
         form.setSsoGroupName(target.getSsoGroupName());
-        form.setRoles(new HashSet<>(target.getRoles()));
+        form.setRoles(formatRoles(target.getRoles()));
 
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("form", form);
@@ -108,7 +111,7 @@ public class SecurityGroupManagementController {
 
         target.setName(form.getName());
         target.setSsoGroupName(form.getSsoGroupName() == null ? "" : form.getSsoGroupName());
-        target.setRoles(new HashSet<>(form.getRoles()));
+        target.setRoles(parseRoles(form.getRoles()));
 
         try {
             securityGroupService.save(target);
@@ -130,6 +133,24 @@ public class SecurityGroupManagementController {
 
         securityGroupService.deleteWithCleanup(target);
         return "redirect:/security-groups";
+    }
+
+    private static Set<SecurityRole> parseRoles(Set<String> roles) {
+        if (roles == null) {
+            return new HashSet<>();
+        }
+        return roles.stream().map(role -> {
+            int lastUnderscore = role.lastIndexOf('_');
+            SecurityGroup.UserRoleTypeEnum type = SecurityGroup.UserRoleTypeEnum.valueOf(role.substring(0, lastUnderscore));
+            SecurityGroup.UserRoleScopeEnum scope = SecurityGroup.UserRoleScopeEnum.valueOf(role.substring(lastUnderscore + 1));
+            return new SecurityRole(type, scope);
+        }).collect(Collectors.toSet());
+    }
+
+    private static Set<String> formatRoles(Set<SecurityRole> roles) {
+        return roles.stream()
+                .map(role -> role.getType().name() + "_" + role.getScope().name())
+                .collect(Collectors.toSet());
     }
 
     private SecurityGroup findGroupOrThrow(UUID id) {

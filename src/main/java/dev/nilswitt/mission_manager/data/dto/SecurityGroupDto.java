@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.data.dto;
 
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,7 +15,7 @@ public class SecurityGroupDto extends AbstractEntityDto {
 
     private String name;
     private String ssoGroupName;
-    private List<String> roles;
+    private List<SecurityRole> roles;
 
     public SecurityGroupDto(
         UUID id,
@@ -23,7 +24,7 @@ public class SecurityGroupDto extends AbstractEntityDto {
         String createdBy,
         String modifiedBy,
         String name,
-        List<String> roles,
+        List<SecurityRole> roles,
         String ssoGroupName
     ) {
         super(id, createdAt, updatedAt, createdBy, modifiedBy);

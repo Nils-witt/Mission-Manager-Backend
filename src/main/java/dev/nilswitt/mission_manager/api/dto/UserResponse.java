@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api.dto;
 
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.data.entities.User;
 
@@ -23,7 +24,7 @@ public record UserResponse(
     Set<UUID> tenantIds,
     Set<UUID> securityGroupIds,
     Set<SecurityGroup.UserRoleScopeEnum> permissions,
-    Set<String> roles
+    Set<SecurityRole> roles
 ) {
     public static UserResponse from(User user, Set<SecurityGroup.UserRoleScopeEnum> permissions) {
         return new UserResponse(

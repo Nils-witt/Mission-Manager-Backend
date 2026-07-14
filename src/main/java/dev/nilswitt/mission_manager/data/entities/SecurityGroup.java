@@ -1,10 +1,14 @@
 package dev.nilswitt.mission_manager.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -37,8 +41,9 @@ public class SecurityGroup extends AbstractEntity {
     @JsonIgnore
     private Set<User> users;
 
-    @Column
-    private Set<String> roles = new HashSet<>();
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "security_group_role", joinColumns = @JoinColumn(name = "group_id"))
+    private Set<SecurityRole> roles = new HashSet<>();
 
     @Column(nullable = false)
     private boolean isBuiltIn = false;
@@ -47,17 +52,16 @@ public class SecurityGroup extends AbstractEntity {
         this.name = name;
     }
 
-    public SecurityGroup(String name, Set<String> roles) {
+    public SecurityGroup(String name, Set<SecurityRole> roles) {
         this.name = name;
         this.roles = roles;
     }
 
-    public static List<String> availableRoles() {
-        ArrayList<String> roles = new ArrayList<>();
+    public static List<SecurityRole> availableRoles() {
+        ArrayList<SecurityRole> roles = new ArrayList<>();
         for (UserRoleTypeEnum type : UserRoleTypeEnum.values()) {
             for (UserRoleScopeEnum scope : UserRoleScopeEnum.values()) {
-                String roleName = type.name() + "_" + scope.name();
-                roles.add(roleName);
+                roles.add(new SecurityRole(type, scope));
             }
         }
         return roles;
@@ -65,7 +69,7 @@ public class SecurityGroup extends AbstractEntity {
 
     public List<SimpleGrantedAuthority> getGrantedAuthorities() {
         return this.roles.stream()
-            .map(a -> new SimpleGrantedAuthority("ROLE_" + a))
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getType().name() + "_" + role.getScope().name()))
             .toList();
     }
 
