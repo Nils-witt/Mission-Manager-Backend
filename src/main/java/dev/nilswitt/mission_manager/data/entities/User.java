@@ -1,7 +1,6 @@
 package dev.nilswitt.mission_manager.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.nilswitt.mission_manager.events.EntityEventListener;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +13,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.*;
 
 @Setter
-@EntityListeners(EntityEventListener.class)
 @Entity
 @Table(
         name = "users",

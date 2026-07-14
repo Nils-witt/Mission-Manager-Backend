@@ -22,7 +22,8 @@ public record UserResponse(
     UUID primaryTenantId,
     Set<UUID> tenantIds,
     Set<UUID> securityGroupIds,
-    Set<SecurityGroup.UserRoleScopeEnum> permissions
+    Set<SecurityGroup.UserRoleScopeEnum> permissions,
+    Set<String> roles
 ) {
     public static UserResponse from(User user, Set<SecurityGroup.UserRoleScopeEnum> permissions) {
         return new UserResponse(
@@ -38,7 +39,8 @@ public record UserResponse(
             user.getPrimaryTenant() != null ? user.getPrimaryTenant().getId() : null,
             user.getTenants().stream().map(Tenant::getId).collect(Collectors.toSet()),
             user.getSecurityGroups().stream().map(SecurityGroup::getId).collect(Collectors.toSet()),
-            permissions
+            permissions,
+            user.getSecurityGroups().stream().flatMap(group -> group.getRoles().stream()).collect(Collectors.toSet())
         );
     }
 }

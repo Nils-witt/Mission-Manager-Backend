@@ -1,5 +1,6 @@
 package dev.nilswitt.mission_manager.data.entities;
 
+import dev.nilswitt.mission_manager.events.EntityEventListener;
 import jakarta.persistence.*;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedBy;
@@ -17,7 +18,7 @@ import java.util.UUID;
  */
 @MappedSuperclass
 @Getter
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners({ AuditingEntityListener.class, EntityEventListener.class })
 public abstract class AbstractEntity {
 
     @Id

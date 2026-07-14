@@ -1,10 +1,8 @@
 package dev.nilswitt.mission_manager.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import dev.nilswitt.mission_manager.events.EntityEventListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.ManyToMany;
@@ -22,7 +20,6 @@ import java.util.Set;
 
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-@EntityListeners(EntityEventListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
