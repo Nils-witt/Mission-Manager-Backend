@@ -7,31 +7,21 @@ import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.TenantService;
+import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.CREATE;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.DELETE;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.EDIT;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.VIEW;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleTypeEnum.SECURITYGROUP;
+import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.*;
 
 @RestController
 @RequestMapping("/api/tenants")
@@ -39,23 +29,30 @@ import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleT
 public class TenantApiController {
 
     private final TenantService tenantService;
+    private final UserService userService;
     private final PermissionVerifier permissionVerifier;
 
-    public TenantApiController(TenantService tenantService, PermissionVerifier permissionVerifier) {
+    public TenantApiController(TenantService tenantService, UserService userService, PermissionVerifier permissionVerifier) {
         this.tenantService = tenantService;
+        this.userService = userService;
         this.permissionVerifier = permissionVerifier;
     }
 
     @GetMapping
     public List<TenantResponse> list(@AuthenticationPrincipal User currentUser) {
-        requireScope(currentUser, VIEW);
-        return tenantService.findAll().stream().map(tenant -> TenantResponse.from(tenant, permissions(currentUser))).toList();
+        if (hasViewScope(currentUser)) {
+            return tenantService.findAll().stream().map(tenant -> TenantResponse.from(tenant, permissions(currentUser))).toList();
+        }
+        return ownTenants(currentUser).stream().map(tenant -> TenantResponse.from(tenant, permissions(currentUser))).toList();
     }
 
     @GetMapping("/{id}")
     public TenantResponse get(@AuthenticationPrincipal User currentUser, @PathVariable UUID id) {
-        requireScope(currentUser, VIEW);
-        return TenantResponse.from(findTenantOrThrow(id), permissions(currentUser));
+        Tenant target = findTenantOrThrow(id);
+        if (!hasViewScope(currentUser) && ownTenants(currentUser).stream().noneMatch(tenant -> tenant.getId().equals(id))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        return TenantResponse.from(target, permissions(currentUser));
     }
 
     @PostMapping
@@ -74,9 +71,9 @@ public class TenantApiController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
-        @AuthenticationPrincipal User currentUser,
-        @PathVariable UUID id,
-        @RequestBody TenantRequest request
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestBody TenantRequest request
     ) {
         requireScope(currentUser, EDIT);
         Tenant target = findTenantOrThrow(id);
@@ -104,12 +101,20 @@ public class TenantApiController {
     }
 
     private void requireScope(User currentUser, SecurityGroup.UserRoleScopeEnum scope) {
-        if (!PermissionVerifier.hasAnyScope(currentUser, SECURITYGROUP, scope)) {
+        if (!PermissionVerifier.hasAnyScope(currentUser, SecurityGroup.UserRoleTypeEnum.TENANT, scope)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
     }
 
+    private boolean hasViewScope(User currentUser) {
+        return PermissionVerifier.hasAnyScope(currentUser, SecurityGroup.UserRoleTypeEnum.TENANT, VIEW);
+    }
+
+    private Set<Tenant> ownTenants(User currentUser) {
+        return userService.findById(currentUser.getId()).map(User::getTenants).orElse(Set.of());
+    }
+
     private Set<SecurityGroup.UserRoleScopeEnum> permissions(User currentUser) {
-        return permissionVerifier.getScopes(SECURITYGROUP, currentUser);
+        return permissionVerifier.getScopes(SecurityGroup.UserRoleTypeEnum.TENANT, currentUser);
     }
 }

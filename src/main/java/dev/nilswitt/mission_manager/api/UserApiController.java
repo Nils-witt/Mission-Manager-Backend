@@ -67,6 +67,12 @@ public class UserApiController {
         return userService.findAll().stream().map(target -> UserResponse.from(target, permissions(currentUser, target))).toList();
     }
 
+    @GetMapping("/me")
+    public UserResponse me(@AuthenticationPrincipal User currentUser) {
+        User target = findUserOrThrow(currentUser.getId());
+        return UserResponse.from(target, permissions(currentUser, target));
+    }
+
     @GetMapping("/{id}")
     public UserResponse get(@AuthenticationPrincipal User currentUser, @PathVariable UUID id) {
         User target = findUserOrThrow(id);

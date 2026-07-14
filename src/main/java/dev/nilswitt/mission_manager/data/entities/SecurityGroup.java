@@ -1,15 +1,7 @@
 package dev.nilswitt.mission_manager.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -69,8 +61,8 @@ public class SecurityGroup extends AbstractEntity {
 
     public List<SimpleGrantedAuthority> getGrantedAuthorities() {
         return this.roles.stream()
-            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getType().name() + "_" + role.getScope().name()))
-            .toList();
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getType().name() + "_" + role.getScope().name()))
+                .toList();
     }
 
     public enum UserRoleScopeEnum {
@@ -99,5 +91,6 @@ public class SecurityGroup extends AbstractEntity {
         EMAIL,
         QUALIFICATION,
         POSITION,
+        TENANT,
     }
 }

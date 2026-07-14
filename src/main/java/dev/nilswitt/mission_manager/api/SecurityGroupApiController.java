@@ -4,6 +4,7 @@ import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
 import dev.nilswitt.mission_manager.api.dto.SecurityGroupRequest;
 import dev.nilswitt.mission_manager.api.dto.SecurityGroupResponse;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
@@ -50,6 +51,12 @@ public class SecurityGroupApiController {
     public List<SecurityGroupResponse> list(@AuthenticationPrincipal User currentUser) {
         requireScope(currentUser, VIEW);
         return securityGroupService.findAll().stream().map(group -> SecurityGroupResponse.from(group, permissions(currentUser))).toList();
+    }
+
+    @GetMapping("/roles")
+    public List<SecurityRole> listAvailableRoles(@AuthenticationPrincipal User currentUser) {
+        requireScope(currentUser, VIEW);
+        return SecurityGroup.availableRoles();
     }
 
     @GetMapping("/{id}")
