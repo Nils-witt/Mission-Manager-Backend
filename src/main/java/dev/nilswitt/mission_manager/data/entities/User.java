@@ -29,6 +29,9 @@ import java.util.*;
 @Getter
 public class User extends AbstractEntity implements UserDetails {
 
+    @OneToMany(mappedBy = "user", orphanRemoval = true)
+    private Set<UserMissionAssignment> missions = new LinkedHashSet<>();
+
     public User() {
 
     }

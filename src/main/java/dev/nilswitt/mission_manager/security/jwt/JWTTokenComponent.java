@@ -54,6 +54,10 @@ public class JWTTokenComponent {
         }
     }
 
+    public long getExpirationMs() {
+        return EXPIRATION_MS;
+    }
+
     public String generateToken(User user, UUID tokenId) {
         return generateToken(user, tokenId, true);
     }

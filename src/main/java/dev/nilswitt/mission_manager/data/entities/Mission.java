@@ -1,13 +1,6 @@
 package dev.nilswitt.mission_manager.data.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -48,13 +41,10 @@ public class Mission extends AbstractEntity {
     @Column(name = "street_address", length = 255)
     private String streetAddress;
 
-    @ManyToMany
-    @JoinTable(
-        name = "mission_available_users",
-        joinColumns = @JoinColumn(name = "mission_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    @JsonIgnore
-    private Set<User> availableUsers = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "mission", orphanRemoval = true)
+    private Set<UserMissionAssignment> userAssignments = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "mission", orphanRemoval = true)
+    private Set<UserPosition> positions = new LinkedHashSet<>();
 
 }

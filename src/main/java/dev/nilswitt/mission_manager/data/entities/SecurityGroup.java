@@ -97,5 +97,6 @@ public class SecurityGroup extends AbstractEntity {
         AUDITLOG,
         EMAIL,
         QUALIFICATION,
+        POSITION,
     }
 }

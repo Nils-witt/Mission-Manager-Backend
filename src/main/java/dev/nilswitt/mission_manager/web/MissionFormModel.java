@@ -4,8 +4,6 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -23,5 +21,4 @@ public class MissionFormModel {
     private Double latitude;
     private Double longitude;
     private String streetAddress;
-    private Set<UUID> availableUserIds = new HashSet<>();
 }

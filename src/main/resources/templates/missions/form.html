@@ -54,18 +54,140 @@
             </div>
         </div>
 
-        <fieldset class="mb-3">
-            <legend class="h6">Available Users</legend>
-            <div class="form-check" th:each="user : ${users}">
-                <input type="checkbox" class="form-check-input" th:field="*{availableUserIds}"
-                       th:value="${user.id}"/>
-                <label class="form-check-label" th:text="${user.username}"></label>
-            </div>
-        </fieldset>
-
         <button type="submit" class="btn btn-primary" th:text="${isNew} ? 'Create' : 'Save'"></button>
         <a th:href="@{/missions}" class="btn btn-link">Cancel</a>
     </form>
+
+    <section th:if="${!isNew}" class="mt-4">
+        <h2 class="h5">Assigned Users</h2>
+        <div th:if="${assignmentError}" class="alert alert-danger" th:text="${assignmentError}"></div>
+
+        <div class="table-responsive mb-3" th:unless="${#lists.isEmpty(missionAssignments)}">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="assignment : ${missionAssignments}">
+                    <td th:text="${assignment.user.username}"></td>
+                    <td th:text="${assignment.startTime != null ? assignment.startTime : '-'}"></td>
+                    <td th:text="${assignment.endTime != null ? assignment.endTime : '-'}"></td>
+                    <td class="text-end">
+                        <form th:action="@{/missions/{mid}/users/{id}/delete(mid=${missionId},id=${assignment.id})}"
+                              method="post" class="d-inline" onsubmit="return confirm('Remove this user from the mission?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p th:if="${#lists.isEmpty(missionAssignments)}" class="text-muted">No users assigned yet.</p>
+
+        <h3 class="h6">Assign user</h3>
+        <form th:action="@{/missions/{mid}/users(mid=${missionId})}" method="post"
+              class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">User</label>
+                <select class="form-select" name="userId" required>
+                    <option value="" disabled selected>Select…</option>
+                    <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.username}"></option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Start Time</label>
+                <input type="datetime-local" class="form-control" name="startTime"/>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Time</label>
+                <input type="datetime-local" class="form-control" name="endTime"/>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Assign</button>
+            </div>
+        </form>
+    </section>
+
+    <section th:if="${!isNew}" class="mt-4">
+        <h2 class="h5">Positions</h2>
+        <div th:if="${positionError}" class="alert alert-danger" th:text="${positionError}"></div>
+
+        <div class="table-responsive mb-3" th:unless="${#lists.isEmpty(positions)}">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Qualifications</th>
+                    <th>Assigned User</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="position : ${positions}">
+                    <td th:text="${position.name}"></td>
+                    <td>
+                        <span th:if="${#sets.isEmpty(position.qualifications)}" class="text-muted">-</span>
+                        <span th:unless="${#sets.isEmpty(position.qualifications)}"
+                              th:text="${#sets.size(position.qualifications)} + ' qualifications'"
+                              class="badge text-bg-info"></span>
+                    </td>
+                    <td>
+                        <form th:action="@{/missions/{mid}/positions/{id}/assigned-user(mid=${missionId},id=${position.id})}"
+                              method="post" class="d-flex gap-2 align-items-center">
+                            <select class="form-select form-select-sm" name="assignedUserId">
+                                <option value="">Unassigned</option>
+                                <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.username}"
+                                        th:selected="${position.assignedUser != null and position.assignedUser.id == user.id}"></option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">Save</button>
+                        </form>
+                    </td>
+                    <td class="text-end">
+                        <form th:action="@{/missions/{mid}/positions/{id}/delete(mid=${missionId},id=${position.id})}"
+                              method="post" class="d-inline" onsubmit="return confirm('Delete this position?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p th:if="${#lists.isEmpty(positions)}" class="text-muted">No positions defined yet.</p>
+
+        <h3 class="h6">Add position</h3>
+        <form th:action="@{/missions/{mid}/positions(mid=${missionId})}" method="post" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" name="name" required/>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Assigned User</label>
+                <select class="form-select" name="assignedUserId">
+                    <option value="">Unassigned</option>
+                    <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.username}"></option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Add position</button>
+            </div>
+            <div class="col-12">
+                <fieldset class="mb-0">
+                    <legend class="h6">Required qualifications</legend>
+                    <p th:if="${#lists.isEmpty(qualifications)}" class="text-muted">No qualifications exist yet.</p>
+                    <div class="form-check form-check-inline" th:each="q : ${qualifications}">
+                        <input type="checkbox" class="form-check-input" name="qualificationIds" th:value="${q.id}"
+                               th:id="${'qual-' + q.id}"/>
+                        <label class="form-check-label" th:for="${'qual-' + q.id}" th:text="${q.name}"></label>
+                    </div>
+                </fieldset>
+            </div>
+        </form>
+    </section>
 </main>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>

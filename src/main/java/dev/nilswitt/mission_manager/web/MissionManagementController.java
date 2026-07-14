@@ -4,7 +4,10 @@ import dev.nilswitt.mission_manager.data.entities.Mission;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.MissionService;
+import dev.nilswitt.mission_manager.data.services.QualificationService;
 import dev.nilswitt.mission_manager.data.services.TenantService;
+import dev.nilswitt.mission_manager.data.services.UserMissionAssignmentService;
+import dev.nilswitt.mission_manager.data.services.UserPositionService;
 import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,22 +15,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.CREATE;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.DELETE;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.EDIT;
-import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.VIEW;
+import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.*;
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleTypeEnum.MISSION;
 
 @Controller
@@ -37,17 +30,26 @@ public class MissionManagementController {
     private final MissionService missionService;
     private final TenantService tenantService;
     private final UserService userService;
+    private final UserMissionAssignmentService userMissionAssignmentService;
+    private final UserPositionService userPositionService;
+    private final QualificationService qualificationService;
     private final PermissionVerifier permissionVerifier;
 
     public MissionManagementController(
-        MissionService missionService,
-        TenantService tenantService,
-        UserService userService,
-        PermissionVerifier permissionVerifier
+            MissionService missionService,
+            TenantService tenantService,
+            UserService userService,
+            UserMissionAssignmentService userMissionAssignmentService,
+            UserPositionService userPositionService,
+            QualificationService qualificationService,
+            PermissionVerifier permissionVerifier
     ) {
         this.missionService = missionService;
         this.tenantService = tenantService;
         this.userService = userService;
+        this.userMissionAssignmentService = userMissionAssignmentService;
+        this.userPositionService = userPositionService;
+        this.qualificationService = qualificationService;
         this.permissionVerifier = permissionVerifier;
     }
 
@@ -67,16 +69,15 @@ public class MissionManagementController {
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("form", new MissionFormModel());
         model.addAttribute("tenants", tenantService.findAll());
-        model.addAttribute("users", userService.findAll());
         model.addAttribute("isNew", true);
         return "missions/form";
     }
 
     @PostMapping
     public String create(
-        @AuthenticationPrincipal User currentUser,
-        @ModelAttribute("form") MissionFormModel form,
-        Model model
+            @AuthenticationPrincipal User currentUser,
+            @ModelAttribute("form") MissionFormModel form,
+            Model model
     ) {
         requireScope(currentUser, CREATE);
 
@@ -91,7 +92,6 @@ public class MissionManagementController {
         mission.setName(form.getName());
         mission.setTenant(tenantService.findById(form.getTenantId()).orElse(null));
         applyDetails(mission, form);
-        applyAvailableUsers(mission, form.getAvailableUserIds());
 
         try {
             missionService.save(mission);
@@ -103,7 +103,13 @@ public class MissionManagementController {
     }
 
     @GetMapping("/{id}/edit")
-    public String editForm(@AuthenticationPrincipal User currentUser, @PathVariable UUID id, Model model) {
+    public String editForm(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @RequestParam(required = false) String assignmentError,
+            @RequestParam(required = false) String positionError,
+            Model model
+    ) {
         Mission target = findMissionOrThrow(id);
         requireScope(currentUser, EDIT, target);
 
@@ -115,23 +121,27 @@ public class MissionManagementController {
         form.setLatitude(target.getLatitude());
         form.setLongitude(target.getLongitude());
         form.setStreetAddress(target.getStreetAddress());
-        form.setAvailableUserIds(target.getAvailableUsers().stream().map(User::getId).collect(Collectors.toSet()));
 
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("form", form);
         model.addAttribute("tenants", tenantService.findAll());
-        model.addAttribute("users", userService.findAll());
         model.addAttribute("isNew", false);
         model.addAttribute("missionId", id);
+        model.addAttribute("users", userService.findAll());
+        model.addAttribute("missionAssignments", userMissionAssignmentService.findByMission(target));
+        model.addAttribute("assignmentError", assignmentError);
+        model.addAttribute("positions", userPositionService.findByMission(target));
+        model.addAttribute("qualifications", qualificationService.findAll());
+        model.addAttribute("positionError", positionError);
         return "missions/form";
     }
 
     @PostMapping("/{id}")
     public String update(
-        @AuthenticationPrincipal User currentUser,
-        @PathVariable UUID id,
-        @ModelAttribute("form") MissionFormModel form,
-        Model model
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID id,
+            @ModelAttribute("form") MissionFormModel form,
+            Model model
     ) {
         Mission target = findMissionOrThrow(id);
         requireScope(currentUser, EDIT, target);
@@ -146,7 +156,6 @@ public class MissionManagementController {
         target.setName(form.getName());
         target.setTenant(tenantService.findById(form.getTenantId()).orElse(null));
         applyDetails(target, form);
-        applyAvailableUsers(target, form.getAvailableUserIds());
 
         try {
             missionService.save(target);
@@ -187,13 +196,6 @@ public class MissionManagementController {
         return form.getStartTime() != null && form.getEndTime() != null && form.getEndTime().isBefore(form.getStartTime());
     }
 
-    private void applyAvailableUsers(Mission mission, Set<UUID> userIds) {
-        mission.getAvailableUsers().clear();
-        if (userIds != null) {
-            userIds.forEach(userId -> userService.findById(userId).ifPresent(mission.getAvailableUsers()::add));
-        }
-    }
-
     private void requireScope(User currentUser, SecurityGroup.UserRoleScopeEnum scope) {
         if (!PermissionVerifier.hasAnyScope(currentUser, MISSION, scope)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -207,20 +209,28 @@ public class MissionManagementController {
     }
 
     private String reRenderForm(
-        Model model,
-        User currentUser,
-        MissionFormModel form,
-        boolean isNew,
-        UUID missionId,
-        String error
+            Model model,
+            User currentUser,
+            MissionFormModel form,
+            boolean isNew,
+            UUID missionId,
+            String error
     ) {
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("form", form);
         model.addAttribute("tenants", tenantService.findAll());
-        model.addAttribute("users", userService.findAll());
         model.addAttribute("isNew", isNew);
         model.addAttribute("missionId", missionId);
         model.addAttribute("error", error);
+        if (!isNew && missionId != null) {
+            model.addAttribute("users", userService.findAll());
+            model.addAttribute("qualifications", qualificationService.findAll());
+            missionService.findById(missionId)
+                    .ifPresent(mission -> {
+                        model.addAttribute("missionAssignments", userMissionAssignmentService.findByMission(mission));
+                        model.addAttribute("positions", userPositionService.findByMission(mission));
+                    });
+        }
         return "missions/form";
     }
 }
