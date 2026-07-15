@@ -4,6 +4,7 @@ import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
+import dev.nilswitt.mission_manager.data.services.TenantService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -26,9 +27,11 @@ import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleT
 public class SecurityGroupManagementController {
 
     private final SecurityGroupService securityGroupService;
+    private final TenantService tenantService;
 
-    public SecurityGroupManagementController(SecurityGroupService securityGroupService) {
+    public SecurityGroupManagementController(SecurityGroupService securityGroupService, TenantService tenantService) {
         this.securityGroupService = securityGroupService;
+        this.tenantService = tenantService;
     }
 
     @GetMapping
@@ -50,6 +53,7 @@ public class SecurityGroupManagementController {
         model.addAttribute("form", new SecurityGroupFormModel());
         model.addAttribute("types", SecurityGroup.UserRoleTypeEnum.values());
         model.addAttribute("scopes", SecurityGroup.UserRoleScopeEnum.values());
+        model.addAttribute("tenants", tenantService.findAll());
         model.addAttribute("isNew", true);
         model.addAttribute("isBuiltIn", false);
         return "security-groups/form";
@@ -63,8 +67,13 @@ public class SecurityGroupManagementController {
     ) {
         requireScope(currentUser, CREATE);
 
+        if (form.getTenantId() == null) {
+            return reRenderForm(model, currentUser, form, true, null, false, "Tenant is required.");
+        }
+
         SecurityGroup group = new SecurityGroup(form.getName(), parseRoles(form.getRoles()));
         group.setSsoGroupName(form.getSsoGroupName() == null ? "" : form.getSsoGroupName());
+        group.setTenant(tenantService.findById(form.getTenantId()).orElse(null));
 
         try {
             securityGroupService.save(group);
@@ -84,11 +93,13 @@ public class SecurityGroupManagementController {
         form.setName(target.getName());
         form.setSsoGroupName(target.getSsoGroupName());
         form.setRoles(formatRoles(target.getRoles()));
+        form.setTenantId(target.getTenant() != null ? target.getTenant().getId() : null);
 
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("form", form);
         model.addAttribute("types", SecurityGroup.UserRoleTypeEnum.values());
         model.addAttribute("scopes", SecurityGroup.UserRoleScopeEnum.values());
+        model.addAttribute("tenants", tenantService.findAll());
         model.addAttribute("isNew", false);
         model.addAttribute("groupId", id);
         model.addAttribute("isBuiltIn", target.isBuiltIn());
@@ -109,9 +120,14 @@ public class SecurityGroupManagementController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Built-in security groups cannot be edited.");
         }
 
+        if (form.getTenantId() == null) {
+            return reRenderForm(model, currentUser, form, false, id, false, "Tenant is required.");
+        }
+
         target.setName(form.getName());
         target.setSsoGroupName(form.getSsoGroupName() == null ? "" : form.getSsoGroupName());
         target.setRoles(parseRoles(form.getRoles()));
+        target.setTenant(tenantService.findById(form.getTenantId()).orElse(null));
 
         try {
             securityGroupService.save(target);
@@ -176,6 +192,7 @@ public class SecurityGroupManagementController {
         model.addAttribute("form", form);
         model.addAttribute("types", SecurityGroup.UserRoleTypeEnum.values());
         model.addAttribute("scopes", SecurityGroup.UserRoleScopeEnum.values());
+        model.addAttribute("tenants", tenantService.findAll());
         model.addAttribute("isNew", isNew);
         model.addAttribute("groupId", groupId);
         model.addAttribute("isBuiltIn", isBuiltIn);

@@ -7,6 +7,7 @@ import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.SecurityRole;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
+import dev.nilswitt.mission_manager.data.services.TenantService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,10 +41,16 @@ import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleT
 public class SecurityGroupApiController {
 
     private final SecurityGroupService securityGroupService;
+    private final TenantService tenantService;
     private final PermissionVerifier permissionVerifier;
 
-    public SecurityGroupApiController(SecurityGroupService securityGroupService, PermissionVerifier permissionVerifier) {
+    public SecurityGroupApiController(
+        SecurityGroupService securityGroupService,
+        TenantService tenantService,
+        PermissionVerifier permissionVerifier
+    ) {
         this.securityGroupService = securityGroupService;
+        this.tenantService = tenantService;
         this.permissionVerifier = permissionVerifier;
     }
 
@@ -69,8 +76,13 @@ public class SecurityGroupApiController {
     public ResponseEntity<?> create(@AuthenticationPrincipal User currentUser, @RequestBody SecurityGroupRequest request) {
         requireScope(currentUser, CREATE);
 
+        if (request.tenantId() == null) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Tenant is required."));
+        }
+
         SecurityGroup group = new SecurityGroup(request.name(), new HashSet<>(request.roles()));
         group.setSsoGroupName(request.ssoGroupName() == null ? "" : request.ssoGroupName());
+        group.setTenant(tenantService.findById(request.tenantId()).orElse(null));
 
         try {
             securityGroupService.save(group);
@@ -95,9 +107,14 @@ public class SecurityGroupApiController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Built-in security groups cannot be edited.");
         }
 
+        if (request.tenantId() == null) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Tenant is required."));
+        }
+
         target.setName(request.name());
         target.setSsoGroupName(request.ssoGroupName() == null ? "" : request.ssoGroupName());
         target.setRoles(new HashSet<>(request.roles()));
+        target.setTenant(tenantService.findById(request.tenantId()).orElse(null));
 
         try {
             securityGroupService.save(target);
