@@ -8,25 +8,27 @@ import java.util.Set;
 import java.util.UUID;
 
 public record SecurityGroupResponse(
-    UUID id,
-    Instant createdAt,
-    Instant updatedAt,
-    String name,
-    String ssoGroupName,
-    Set<SecurityRole> roles,
-    boolean builtIn,
-    Set<SecurityGroup.UserRoleScopeEnum> permissions
+        UUID id,
+        Instant createdAt,
+        Instant updatedAt,
+        String name,
+        String ssoGroupName,
+        Set<SecurityRole> roles,
+        boolean builtIn,
+        Set<SecurityGroup.UserRoleScopeEnum> permissions,
+        UUID tenantId
 ) {
     public static SecurityGroupResponse from(SecurityGroup group, Set<SecurityGroup.UserRoleScopeEnum> permissions) {
         return new SecurityGroupResponse(
-            group.getId(),
-            group.getCreatedAt(),
-            group.getUpdatedAt(),
-            group.getName(),
-            group.getSsoGroupName(),
-            group.getRoles(),
-            group.isBuiltIn(),
-            permissions
+                group.getId(),
+                group.getCreatedAt(),
+                group.getUpdatedAt(),
+                group.getName(),
+                group.getSsoGroupName(),
+                group.getRoles(),
+                group.isBuiltIn(),
+                permissions,
+                group.getTenant().getId()
         );
     }
 }

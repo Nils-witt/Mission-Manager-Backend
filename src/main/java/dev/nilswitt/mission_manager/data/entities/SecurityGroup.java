@@ -40,6 +40,10 @@ public class SecurityGroup extends AbstractEntity {
     @Column(nullable = false)
     private boolean isBuiltIn = false;
 
+    @ManyToOne
+    @JoinColumn(name = "tenant_id")
+    private Tenant tenant;
+
     public SecurityGroup(String name) {
         this.name = name;
     }

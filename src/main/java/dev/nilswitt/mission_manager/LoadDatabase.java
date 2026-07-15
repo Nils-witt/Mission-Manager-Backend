@@ -84,6 +84,12 @@ class LoadDatabase {
             }
         }
 
+
+        securityGroupRepository.findAll().stream().filter(sg -> sg.getTenant() == null).forEach(sg -> {
+            sg.setTenant(defaultTenant);
+            securityGroupRepository.save(sg);
+        });
+
         return args -> {
         };
     }
