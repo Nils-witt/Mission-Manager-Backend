@@ -47,4 +47,7 @@ public class Mission extends AbstractEntity {
     @OneToMany(mappedBy = "mission", orphanRemoval = true)
     private Set<UserPosition> positions = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "mission", orphanRemoval = true)
+    private Set<LogBookEntry> logBookEntries = new LinkedHashSet<>();
+
 }
