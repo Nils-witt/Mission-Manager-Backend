@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.api.dto.UserQualificationResponse;
 import dev.nilswitt.mission_manager.data.entities.Qualification;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
@@ -12,6 +13,9 @@ import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,7 +35,6 @@ import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.EDIT;
@@ -60,12 +63,40 @@ public class UserQualificationApiController {
     }
 
     @GetMapping
-    public List<UserQualificationResponse> list(@AuthenticationPrincipal User currentUser, @PathVariable UUID userId) {
+    public PageResponse<UserQualificationResponse> list(
+        @AuthenticationPrincipal User currentUser,
+        @PathVariable UUID userId,
+        @RequestParam(required = false) UUID qualificationId,
+        @RequestParam(required = false) Boolean active,
+        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
         User targetUser = findUserOrThrow(userId);
         requireAccess(currentUser, VIEW, targetUser);
-        return userQualificationService.findByUser(targetUser).stream()
-            .map(uq -> UserQualificationResponse.from(uq, permissionVerifier.getScopes(targetUser, currentUser)))
-            .toList();
+
+        Specification<UserQualification> spec = Specifications.allOf(
+            (root, query, cb) -> cb.equal(root.get("user").get("id"), userId),
+            qualificationEquals(qualificationId),
+            activeEquals(active)
+        );
+
+        return PageResponse.from(
+            userQualificationService.findAll(spec, pageable),
+            uq -> UserQualificationResponse.from(uq, permissionVerifier.getScopes(targetUser, currentUser))
+        );
+    }
+
+    private static Specification<UserQualification> qualificationEquals(UUID qualificationId) {
+        if (qualificationId == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("qualification").get("id"), qualificationId);
+    }
+
+    private static Specification<UserQualification> activeEquals(Boolean active) {
+        if (active == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("isActive"), active);
     }
 
     @PostMapping

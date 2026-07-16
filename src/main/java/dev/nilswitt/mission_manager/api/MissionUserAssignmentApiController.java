@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.api.dto.UserMissionAssignmentRequest;
 import dev.nilswitt.mission_manager.api.dto.UserMissionAssignmentResponse;
 import dev.nilswitt.mission_manager.data.entities.Mission;
@@ -11,6 +12,8 @@ import dev.nilswitt.mission_manager.data.services.UserMissionAssignmentService;
 import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,10 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.UUID;
 
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.EDIT;
@@ -51,12 +54,18 @@ public class MissionUserAssignmentApiController {
     }
 
     @GetMapping
-    public List<UserMissionAssignmentResponse> list(@AuthenticationPrincipal User currentUser, @PathVariable UUID missionId) {
+    public PageResponse<UserMissionAssignmentResponse> list(
+        @AuthenticationPrincipal User currentUser,
+        @PathVariable UUID missionId,
+        @RequestParam(required = false) UUID userId,
+        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
         Mission mission = findMissionOrThrow(missionId);
         requireAccess(currentUser, mission);
-        return userMissionAssignmentService.findByMission(mission).stream()
-            .map(assignment -> UserMissionAssignmentResponse.from(assignment, permissionVerifier.getScopes(mission, currentUser)))
-            .toList();
+        return PageResponse.from(
+            userMissionAssignmentService.findByMission(mission, userId, pageable),
+            assignment -> UserMissionAssignmentResponse.from(assignment, permissionVerifier.getScopes(mission, currentUser))
+        );
     }
 
     @PostMapping

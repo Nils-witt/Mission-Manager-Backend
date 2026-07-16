@@ -3,6 +3,7 @@ package dev.nilswitt.mission_manager.api;
 import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
 import dev.nilswitt.mission_manager.api.dto.MissionRequest;
 import dev.nilswitt.mission_manager.api.dto.MissionResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.data.entities.Mission;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.User;
@@ -11,6 +12,10 @@ import dev.nilswitt.mission_manager.data.services.TenantService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,9 +26,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,11 +56,56 @@ public class MissionApiController {
     }
 
     @GetMapping
-    public List<MissionResponse> list(@AuthenticationPrincipal User currentUser) {
-        return missionService.findAll().stream()
+    public PageResponse<MissionResponse> list(
+        @AuthenticationPrincipal User currentUser,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) UUID tenantId,
+        @RequestParam(required = false) LocalDateTime startAfter,
+        @RequestParam(required = false) LocalDateTime startBefore,
+        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
+        Specification<Mission> spec = Specifications.allOf(
+            nameContains(name),
+            tenantEquals(tenantId),
+            startAfter(startAfter),
+            startBefore(startBefore)
+        );
+
+        Page<Mission> page = missionService.findAll(spec, pageable);
+        List<MissionResponse> content = page.getContent().stream()
             .map(mission -> MissionResponse.from(mission, permissionVerifier.getScopes(mission, currentUser)))
             .filter(response -> response.permissions().contains(VIEW))
             .toList();
+
+        return new PageResponse<>(content, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages());
+    }
+
+    private static Specification<Mission> nameContains(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        return (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
+    }
+
+    private static Specification<Mission> tenantEquals(UUID tenantId) {
+        if (tenantId == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("tenant").get("id"), tenantId);
+    }
+
+    private static Specification<Mission> startAfter(LocalDateTime startAfter) {
+        if (startAfter == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("startTime"), startAfter);
+    }
+
+    private static Specification<Mission> startBefore(LocalDateTime startBefore) {
+        if (startBefore == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("startTime"), startBefore);
     }
 
     @GetMapping("/{id}")

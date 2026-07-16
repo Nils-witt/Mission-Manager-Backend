@@ -4,6 +4,9 @@ import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.entities.UserQualification;
 import dev.nilswitt.mission_manager.data.repositories.UserQualificationRepository;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +30,10 @@ public class UserQualificationService {
 
     public List<UserQualification> findByUser(User user) {
         return userQualificationRepository.findByUser(user);
+    }
+
+    public Page<UserQualification> findAll(Specification<UserQualification> spec, Pageable pageable) {
+        return userQualificationRepository.findAll(spec, pageable);
     }
 
     public Optional<UserQualification> findById(UUID id) {

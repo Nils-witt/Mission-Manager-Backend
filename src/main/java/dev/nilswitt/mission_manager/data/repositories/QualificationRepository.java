@@ -2,6 +2,8 @@ package dev.nilswitt.mission_manager.data.repositories;
 
 import dev.nilswitt.mission_manager.data.entities.Qualification;
 import dev.nilswitt.mission_manager.data.entities.QualificationType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,6 @@ public interface QualificationRepository extends JpaRepository<Qualification, UU
     Optional<Qualification> findByName(String name);
 
     List<Qualification> findByType(QualificationType type);
+
+    Page<Qualification> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

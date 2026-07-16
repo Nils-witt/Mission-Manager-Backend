@@ -2,6 +2,8 @@ package dev.nilswitt.mission_manager.data.services;
 
 import dev.nilswitt.mission_manager.data.entities.Qualification;
 import dev.nilswitt.mission_manager.data.repositories.QualificationRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,13 @@ public class QualificationService {
 
     public List<Qualification> findAll() {
         return qualificationRepository.findAll();
+    }
+
+    public Page<Qualification> findAll(String name, Pageable pageable) {
+        if (name == null || name.isBlank()) {
+            return qualificationRepository.findAll(pageable);
+        }
+        return qualificationRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
     public Optional<Qualification> findById(UUID id) {

@@ -272,8 +272,6 @@ public final class PermissionVerifier {
                     .forEach(scopes::add);
         }
 
-        // -- Custom addition based on relations
-
         return scopes;
     }
 

@@ -2,6 +2,9 @@ package dev.nilswitt.mission_manager.data.services;
 
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.data.repositories.TenantRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,10 @@ public class TenantService {
 
     public List<Tenant> findAll() {
         return tenantRepository.findAll();
+    }
+
+    public Page<Tenant> findAll(Specification<Tenant> spec, Pageable pageable) {
+        return tenantRepository.findAll(spec, pageable);
     }
 
     public Optional<Tenant> findById(UUID id) {

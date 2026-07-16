@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.api.dto.TenantRequest;
 import dev.nilswitt.mission_manager.api.dto.TenantResponse;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
@@ -11,6 +12,9 @@ import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static dev.nilswitt.mission_manager.data.entities.SecurityGroup.UserRoleScopeEnum.*;
 
@@ -39,11 +44,29 @@ public class TenantApiController {
     }
 
     @GetMapping
-    public List<TenantResponse> list(@AuthenticationPrincipal User currentUser) {
-        if (hasViewScope(currentUser)) {
-            return tenantService.findAll().stream().map(tenant -> TenantResponse.from(tenant, permissions(currentUser))).toList();
+    public PageResponse<TenantResponse> list(
+        @AuthenticationPrincipal User currentUser,
+        @RequestParam(required = false) String name,
+        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
+        Specification<Tenant> restriction = null;
+        if (!hasViewScope(currentUser)) {
+            Set<UUID> ownIds = ownTenants(currentUser).stream().map(Tenant::getId).collect(Collectors.toSet());
+            restriction = idIn(ownIds);
         }
-        return ownTenants(currentUser).stream().map(tenant -> TenantResponse.from(tenant, permissions(currentUser))).toList();
+        Specification<Tenant> spec = Specifications.allOf(nameContains(name), restriction);
+        return PageResponse.from(tenantService.findAll(spec, pageable), tenant -> TenantResponse.from(tenant, permissions(currentUser)));
+    }
+
+    private static Specification<Tenant> nameContains(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        return (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
+    }
+
+    private static Specification<Tenant> idIn(Set<UUID> ids) {
+        return (root, query, cb) -> root.get("id").in(ids);
     }
 
     @GetMapping("/{id}")

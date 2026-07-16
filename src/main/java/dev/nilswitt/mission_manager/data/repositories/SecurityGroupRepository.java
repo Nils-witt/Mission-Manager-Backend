@@ -1,6 +1,8 @@
 package dev.nilswitt.mission_manager.data.repositories;
 
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +18,12 @@ public interface SecurityGroupRepository extends JpaRepository<SecurityGroup, UU
     Optional<SecurityGroup> findByName(String name);
 
     List<SecurityGroup> findBySsoGroupName(String ssoGroupName);
+
+    List<SecurityGroup> findByTenant_Id(UUID tenantId);
+
+    Page<SecurityGroup> findByTenant_Id(UUID tenantId, Pageable pageable);
+
+    Page<SecurityGroup> findByTenant_IdAndNameContainingIgnoreCase(UUID tenantId, String name, Pageable pageable);
 
 
     @Modifying

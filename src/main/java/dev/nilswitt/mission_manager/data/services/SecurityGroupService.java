@@ -6,6 +6,8 @@ import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.repositories.SecurityGroupRepository;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,17 @@ public class SecurityGroupService {
 
     public List<SecurityGroup> findBySsoGroupName(String ssoGroupName) {
         return securityGroupRepository.findBySsoGroupName(ssoGroupName);
+    }
+
+    public List<SecurityGroup> findByTenantId(UUID tenantId) {
+        return securityGroupRepository.findByTenant_Id(tenantId);
+    }
+
+    public Page<SecurityGroup> findByTenantId(UUID tenantId, String name, Pageable pageable) {
+        if (name == null || name.isBlank()) {
+            return securityGroupRepository.findByTenant_Id(tenantId, pageable);
+        }
+        return securityGroupRepository.findByTenant_IdAndNameContainingIgnoreCase(tenantId, name, pageable);
     }
 
     public SecurityGroup save(SecurityGroup securityGroup) {

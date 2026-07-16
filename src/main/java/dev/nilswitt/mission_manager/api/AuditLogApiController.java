@@ -1,12 +1,17 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.AuditLogResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.data.entities.AuditLog;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.repositories.AuditLogRepository;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,26 +52,27 @@ public class AuditLogApiController {
     }
 
     @GetMapping
-    public List<AuditLogResponse> list(
+    public PageResponse<AuditLogResponse> list(
         @AuthenticationPrincipal User currentUser,
         @RequestParam(required = false) String entityName,
-        @RequestParam(required = false) UUID entityId
+        @RequestParam(required = false) UUID entityId,
+        @PageableDefault(size = 20, sort = "changedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         if (!PermissionVerifier.hasAnyScope(currentUser, AUDITLOG, VIEW)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
 
-        List<AuditLog> logs;
+        Page<AuditLog> logs;
         if (entityName != null && !entityName.isBlank() && entityId != null) {
-            logs = auditLogRepository.findTop200ByEntityNameAndEntityIdOrderByChangedAtDesc(entityName, entityId);
+            logs = auditLogRepository.findByEntityNameAndEntityId(entityName, entityId, pageable);
         } else if (entityName != null && !entityName.isBlank()) {
-            logs = auditLogRepository.findTop200ByEntityNameOrderByChangedAtDesc(entityName);
+            logs = auditLogRepository.findByEntityName(entityName, pageable);
         } else {
-            logs = auditLogRepository.findTop200ByOrderByChangedAtDesc();
+            logs = auditLogRepository.findAll(pageable);
         }
 
         Set<SecurityGroup.UserRoleScopeEnum> permissions = permissionVerifier.getScopes(AUDITLOG, currentUser);
-        return logs.stream().map(log -> toResponse(log, permissions)).toList();
+        return PageResponse.from(logs, log -> toResponse(log, permissions));
     }
 
     private AuditLogResponse toResponse(AuditLog log, Set<SecurityGroup.UserRoleScopeEnum> permissions) {

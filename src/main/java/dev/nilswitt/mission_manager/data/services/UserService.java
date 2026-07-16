@@ -5,6 +5,9 @@ import dev.nilswitt.mission_manager.data.dto.UserDto;
 import dev.nilswitt.mission_manager.data.entities.User;
 import dev.nilswitt.mission_manager.data.repositories.UserRepository;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -31,6 +34,10 @@ public class UserService {
 
     public List<User> findAll() {
         return userRepository.findAll();
+    }
+
+    public Page<User> findAll(Specification<User> spec, Pageable pageable) {
+        return userRepository.findAll(spec, pageable);
     }
 
     public Optional<User> findById(UUID id) {

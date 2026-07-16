@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.ErrorResponse;
+import dev.nilswitt.mission_manager.api.dto.PageResponse;
 import dev.nilswitt.mission_manager.api.dto.QualificationRequest;
 import dev.nilswitt.mission_manager.api.dto.QualificationResponse;
 import dev.nilswitt.mission_manager.data.entities.Qualification;
@@ -11,6 +12,8 @@ import dev.nilswitt.mission_manager.data.services.QualificationTypeService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,10 +24,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -54,11 +57,16 @@ public class QualificationApiController {
     }
 
     @GetMapping
-    public List<QualificationResponse> list(@AuthenticationPrincipal User currentUser) {
+    public PageResponse<QualificationResponse> list(
+        @AuthenticationPrincipal User currentUser,
+        @RequestParam(required = false) String name,
+        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
         requireScope(currentUser, VIEW);
-        return qualificationService.findAll().stream()
-            .map(qualification -> QualificationResponse.from(qualification, permissions(currentUser)))
-            .toList();
+        return PageResponse.from(
+            qualificationService.findAll(name, pageable),
+            qualification -> QualificationResponse.from(qualification, permissions(currentUser))
+        );
     }
 
     @GetMapping("/{id}")

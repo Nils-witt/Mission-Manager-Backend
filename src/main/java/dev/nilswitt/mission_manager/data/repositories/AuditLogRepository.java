@@ -1,6 +1,8 @@
 package dev.nilswitt.mission_manager.data.repositories;
 
 import dev.nilswitt.mission_manager.data.entities.AuditLog;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +18,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
     List<AuditLog> findTop200ByEntityNameOrderByChangedAtDesc(String entityName);
 
     List<AuditLog> findTop200ByEntityNameAndEntityIdOrderByChangedAtDesc(String entityName, UUID entityId);
+
+    Page<AuditLog> findByEntityNameAndEntityId(String entityName, UUID entityId, Pageable pageable);
+
+    Page<AuditLog> findByEntityName(String entityName, Pageable pageable);
 }
