@@ -32,12 +32,12 @@ public class ApnsService {
     private final String topic;
 
     public ApnsService(
-        @Value("${application.apns.enabled:false}") boolean enabled,
-        @Value("${application.apns.production:false}") boolean production,
-        @Value("${application.apns.signing-key-path:}") String signingKeyPath,
-        @Value("${application.apns.key-id:}") String keyId,
-        @Value("${application.apns.team-id:}") String teamId,
-        @Value("${application.apns.topic:}") String topic
+            @Value("${application.apns.enabled:false}") boolean enabled,
+            @Value("${application.apns.production:false}") boolean production,
+            @Value("${application.apns.signing-key-path:}") String signingKeyPath,
+            @Value("${application.apns.key-id:}") String keyId,
+            @Value("${application.apns.team-id:}") String teamId,
+            @Value("${application.apns.topic:}") String topic
     ) {
         this.topic = topic;
         this.apnsClient = enabled ? buildClient(production, signingKeyPath, keyId, teamId) : null;
@@ -50,16 +50,17 @@ public class ApnsService {
         }
         try {
             return new ApnsClientBuilder()
-                .setApnsServer(production ? ApnsClientBuilder.PRODUCTION_APNS_HOST : ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(signingKeyPath), teamId, keyId))
-                .build();
+                    .setApnsServer(production ? ApnsClientBuilder.PRODUCTION_APNS_HOST : ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                    .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(signingKeyPath), teamId, keyId))
+                    .build();
         } catch (Exception e) {
             log.error("Failed to initialize APNs client; push notifications will be skipped.", e);
             return null;
         }
     }
 
-    public record PushResult(boolean accepted, boolean tokenInvalid, String rejectionReason) {}
+    public record PushResult(boolean accepted, boolean tokenInvalid, String rejectionReason) {
+    }
 
     public PushResult send(String deviceToken, String title, String body) {
         if (apnsClient == null) {
@@ -69,6 +70,7 @@ public class ApnsService {
         ApnsPayloadBuilder payloadBuilder = new SimpleApnsPayloadBuilder();
         payloadBuilder.setAlertTitle(title);
         payloadBuilder.setAlertBody(body);
+        payloadBuilder.setSound("default");
 
         String token = TokenUtil.sanitizeTokenString(deviceToken);
         ApnsPushNotification notification = new SimpleApnsPushNotification(token, topic, payloadBuilder.build());
