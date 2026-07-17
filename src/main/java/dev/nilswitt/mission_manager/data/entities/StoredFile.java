@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.data.entities;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -19,5 +20,8 @@ public class StoredFile extends AbstractEntity {
 
     @Column(name = "original_file_name", nullable = false)
     private String originalFileName;
+
+    @Embedded
+    private EmbeddableLocation location = new EmbeddableLocation();
 
 }

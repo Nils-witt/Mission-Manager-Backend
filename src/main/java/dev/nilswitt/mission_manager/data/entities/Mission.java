@@ -31,11 +31,8 @@ public class Mission extends AbstractEntity {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column
-    private Double latitude;
-
-    @Column
-    private Double longitude;
+    @Embedded
+    private EmbeddableLocation location = new EmbeddableLocation();
 
     @Size(max = 255)
     @Column(name = "street_address", length = 255)
@@ -50,4 +47,19 @@ public class Mission extends AbstractEntity {
     @OneToMany(mappedBy = "mission", orphanRemoval = true)
     private Set<LogBookEntry> logBookEntries = new LinkedHashSet<>();
 
+    public Double getLatitude() {
+        return location.getLatitude();
+    }
+
+    public void setLatitude(Double latitude) {
+        location.setLatitude(latitude);
+    }
+
+    public Double getLongitude() {
+        return location.getLongitude();
+    }
+
+    public void setLongitude(Double longitude) {
+        location.setLongitude(longitude);
+    }
 }

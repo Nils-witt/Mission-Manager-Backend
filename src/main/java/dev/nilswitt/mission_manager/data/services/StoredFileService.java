@@ -1,5 +1,6 @@
 package dev.nilswitt.mission_manager.data.services;
 
+import dev.nilswitt.mission_manager.data.entities.EmbeddableLocation;
 import dev.nilswitt.mission_manager.data.entities.StoredFile;
 import dev.nilswitt.mission_manager.data.repositories.StoredFileRepository;
 import org.springframework.core.io.Resource;
@@ -29,13 +30,16 @@ public class StoredFileService {
         return storedFileRepository.findAllById(ids);
     }
 
-    public StoredFile store(MultipartFile file, String name) {
+    public StoredFile store(MultipartFile file, String name, EmbeddableLocation location) {
         String storedFilename = storedFileStorageService.store(file);
 
         StoredFile storedFile = new StoredFile();
         storedFile.setName(name != null && !name.isBlank() ? name : file.getOriginalFilename());
         storedFile.setFilepath(storedFilename);
         storedFile.setOriginalFileName(file.getOriginalFilename());
+        if (location != null) {
+            storedFile.setLocation(location);
+        }
 
         return storedFileRepository.save(storedFile);
     }

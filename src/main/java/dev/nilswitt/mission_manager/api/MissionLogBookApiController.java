@@ -1,6 +1,7 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.*;
+import dev.nilswitt.mission_manager.data.entities.EmbeddableLocation;
 import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
 import dev.nilswitt.mission_manager.data.entities.Mission;
 import dev.nilswitt.mission_manager.data.entities.StoredFile;
@@ -99,7 +100,11 @@ public class MissionLogBookApiController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID missionId,
             @RequestParam(required = false) String name,
-            @RequestParam MultipartFile file
+            @RequestParam MultipartFile file,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) Double height,
+            @RequestParam(required = false) String locationName
     ) {
         Mission mission = findMissionOrThrow(missionId);
         requireAccess(currentUser, mission);
@@ -108,7 +113,8 @@ public class MissionLogBookApiController {
             return ResponseEntity.badRequest().body(new ErrorResponse("File is required."));
         }
 
-        StoredFile storedFile = storedFileService.store(file, name);
+        EmbeddableLocation location = new EmbeddableLocation(latitude, longitude, height, locationName);
+        StoredFile storedFile = storedFileService.store(file, name, location);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(StoredFileResponse.from(storedFile));
     }
