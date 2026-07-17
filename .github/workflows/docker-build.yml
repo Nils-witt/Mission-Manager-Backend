@@ -46,8 +46,6 @@ jobs:
 
       - name: Build with Gradle Wrapper
         run: ./gradlew build
-      - name: Test with Gradle Wrapper
-        run: ./gradlew test
       - uses: actions/upload-artifact@v4
         with:
           name: application-artifacts
