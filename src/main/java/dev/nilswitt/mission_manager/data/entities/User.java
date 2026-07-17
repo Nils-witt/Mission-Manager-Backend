@@ -30,6 +30,9 @@ public class User extends AbstractEntity implements UserDetails {
     @OneToMany(mappedBy = "user", orphanRemoval = true)
     private Set<UserMissionAssignment> missions = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "user", orphanRemoval = true)
+    private Set<NotificationDestination> notificationDestinations = new LinkedHashSet<>();
+
     public User() {
 
     }
