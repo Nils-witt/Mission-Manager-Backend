@@ -148,6 +148,68 @@
             </div>
         </form>
     </section>
+
+    <section th:if="${!isNew}" class="mt-4">
+        <h2 class="h5">Notification Destinations</h2>
+        <div th:if="${notificationError}" class="alert alert-danger" th:text="${notificationError}"></div>
+        <div th:if="${notificationMessage}" class="alert alert-success" th:text="${notificationMessage}"></div>
+
+        <div class="table-responsive mb-3" th:unless="${#lists.isEmpty(notificationDestinations)}">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Device</th>
+                    <th>Token</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="nd : ${notificationDestinations}">
+                    <td th:text="${nd.name}"></td>
+                    <td th:text="${nd.deviceType}"></td>
+                    <td th:text="${#strings.abbreviate(nd.token, 24)}"></td>
+                    <td class="text-end">
+                        <form th:action="@{/users/{uid}/notification-destinations/{id}/test(uid=${userId},id=${nd.id})}"
+                              method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Send test</button>
+                        </form>
+                        <form th:action="@{/users/{uid}/notification-destinations/{id}/delete(uid=${userId},id=${nd.id})}"
+                              method="post" class="d-inline" onsubmit="return confirm('Remove this destination?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p th:if="${#lists.isEmpty(notificationDestinations)}" class="text-muted">No notification destinations registered yet.</p>
+
+        <h3 class="h6">Add destination</h3>
+        <form th:action="@{/users/{uid}/notification-destinations(uid=${userId})}" method="post"
+              class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Device type</label>
+                <select class="form-select" name="deviceType" required>
+                    <option value="" disabled selected>Select…</option>
+                    <option value="IOS">iOS</option>
+                    <option value="ANDROID">Android</option>
+                    <option value="WEB">Web</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Token</label>
+                <input type="text" class="form-control" name="token" required/>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" name="name" required/>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+        </form>
+    </section>
 </main>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>

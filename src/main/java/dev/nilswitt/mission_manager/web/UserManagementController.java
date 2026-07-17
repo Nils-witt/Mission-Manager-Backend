@@ -3,6 +3,7 @@ package dev.nilswitt.mission_manager.web;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.data.entities.User;
+import dev.nilswitt.mission_manager.data.services.NotificationDestinationService;
 import dev.nilswitt.mission_manager.data.services.QualificationService;
 import dev.nilswitt.mission_manager.data.services.SecurityGroupService;
 import dev.nilswitt.mission_manager.data.services.TenantService;
@@ -34,6 +35,7 @@ public class UserManagementController {
     private final TenantService tenantService;
     private final QualificationService qualificationService;
     private final UserQualificationService userQualificationService;
+    private final NotificationDestinationService notificationDestinationService;
     private final PermissionVerifier permissionVerifier;
     private final PasswordEncoder passwordEncoder;
 
@@ -43,6 +45,7 @@ public class UserManagementController {
             TenantService tenantService,
             QualificationService qualificationService,
             UserQualificationService userQualificationService,
+            NotificationDestinationService notificationDestinationService,
             PermissionVerifier permissionVerifier,
             PasswordEncoder passwordEncoder
     ) {
@@ -51,6 +54,7 @@ public class UserManagementController {
         this.tenantService = tenantService;
         this.qualificationService = qualificationService;
         this.userQualificationService = userQualificationService;
+        this.notificationDestinationService = notificationDestinationService;
         this.permissionVerifier = permissionVerifier;
         this.passwordEncoder = passwordEncoder;
     }
@@ -111,6 +115,8 @@ public class UserManagementController {
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID id,
             @RequestParam(required = false) String qualificationError,
+            @RequestParam(required = false) String notificationError,
+            @RequestParam(required = false) String notificationMessage,
             Model model
     ) {
         User target = findUserOrThrow(id);
@@ -137,6 +143,9 @@ public class UserManagementController {
         model.addAttribute("qualifications", qualificationService.findAll());
         model.addAttribute("userQualifications", userQualificationService.findByUser(target));
         model.addAttribute("qualificationError", qualificationError);
+        model.addAttribute("notificationDestinations", notificationDestinationService.findByUser(target));
+        model.addAttribute("notificationError", notificationError);
+        model.addAttribute("notificationMessage", notificationMessage);
         return "users/form";
     }
 
