@@ -1,0 +1,11 @@
+.git
+.gradle
+build/
+gradle/wrapper/dists
+data/
+data-model-snapshot*.json
+*.md
+.idea
+.vscode
+*.iml
+.DS_Store
