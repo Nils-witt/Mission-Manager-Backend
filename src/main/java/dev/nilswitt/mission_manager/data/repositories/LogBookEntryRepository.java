@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -17,4 +18,6 @@ public interface LogBookEntryRepository extends JpaRepository<LogBookEntry, UUID
     Page<LogBookEntry> findByMission(Mission mission, Pageable pageable);
 
     boolean existsByMissionAndAttachments_Id(Mission mission, UUID attachmentId);
+
+    Optional<LogBookEntry> findBySubmissionId(String submissionId);
 }

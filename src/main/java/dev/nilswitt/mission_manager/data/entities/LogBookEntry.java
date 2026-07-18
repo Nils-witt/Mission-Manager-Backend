@@ -29,6 +29,12 @@ public class LogBookEntry extends AbstractEntity {
     @Column(name = "author")
     private String author;
 
+    @Column(name = "submission_id", unique = true)
+    private String submissionId;
+
+    @Embedded
+    private EmbeddableLocation location = new EmbeddableLocation();
+
     @OneToMany(orphanRemoval = true)
     private Set<StoredFile> attachments = new LinkedHashSet<>();
 

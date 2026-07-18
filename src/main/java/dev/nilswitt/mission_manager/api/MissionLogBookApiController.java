@@ -13,6 +13,7 @@ import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -84,12 +85,34 @@ public class MissionLogBookApiController {
             return ResponseEntity.badRequest().body(new ErrorResponse("Text is required."));
         }
 
+        boolean hasSubmissionId = request.submissionId() != null && !request.submissionId().isBlank();
+        if (hasSubmissionId) {
+            LogBookEntry existing = logBookEntryService.findBySubmissionId(request.submissionId()).orElse(null);
+            if (existing != null) {
+                return existing.getMission().getId().equals(mission.getId())
+                        ? ResponseEntity.ok(LogBookEntryResponse.from(existing, permissionVerifier.getScopes(mission, currentUser)))
+                        : ResponseEntity.status(HttpStatus.CONFLICT)
+                            .body(new ErrorResponse("This submission id was already used for a different mission."));
+            }
+        }
+
         LogBookEntry entry = new LogBookEntry();
         entry.setMission(mission);
         entry.setAuthor(currentUser.getUsername());
+        entry.setSubmissionId(request.submissionId());
         applyDetails(entry, request);
 
-        logBookEntryService.save(entry);
+        try {
+            logBookEntryService.save(entry);
+        } catch (DataIntegrityViolationException ex) {
+            if (!hasSubmissionId) {
+                throw ex;
+            }
+            LogBookEntry existing = logBookEntryService
+                    .findBySubmissionId(request.submissionId())
+                    .orElseThrow(() -> ex);
+            return ResponseEntity.ok(LogBookEntryResponse.from(existing, permissionVerifier.getScopes(mission, currentUser)));
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(LogBookEntryResponse.from(entry, permissionVerifier.getScopes(mission, currentUser)));
@@ -152,6 +175,7 @@ public class MissionLogBookApiController {
         entry.setText(request.text());
         entry.setSender(request.sender());
         entry.setRecipient(request.recipient());
+        entry.setLocation(request.location() != null ? request.location() : new EmbeddableLocation());
         applyAttachments(entry, request.attachmentIds());
     }
 

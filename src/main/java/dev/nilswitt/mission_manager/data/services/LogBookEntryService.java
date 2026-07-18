@@ -36,6 +36,10 @@ public class LogBookEntryService {
         return logBookEntryRepository.existsByMissionAndAttachments_Id(mission, attachmentId);
     }
 
+    public Optional<LogBookEntry> findBySubmissionId(String submissionId) {
+        return logBookEntryRepository.findBySubmissionId(submissionId);
+    }
+
     public LogBookEntry save(LogBookEntry logBookEntry) {
         return logBookEntryRepository.save(logBookEntry);
     }

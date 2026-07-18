@@ -1,5 +1,6 @@
 package dev.nilswitt.mission_manager.api.dto;
 
+import dev.nilswitt.mission_manager.data.entities.EmbeddableLocation;
 import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
 import dev.nilswitt.mission_manager.data.entities.SecurityGroup;
 
@@ -17,6 +18,8 @@ public record LogBookEntryResponse(
     String sender,
     String recipient,
     String author,
+    String submissionId,
+    EmbeddableLocation location,
     Set<StoredFileResponse> attachments,
     Set<SecurityGroup.UserRoleScopeEnum> permissions
 ) {
@@ -30,6 +33,8 @@ public record LogBookEntryResponse(
             entry.getSender(),
             entry.getRecipient(),
             entry.getAuthor(),
+            entry.getSubmissionId(),
+            entry.getLocation(),
             entry.getAttachments().stream().map(StoredFileResponse::from).collect(Collectors.toSet()),
             permissions
         );
