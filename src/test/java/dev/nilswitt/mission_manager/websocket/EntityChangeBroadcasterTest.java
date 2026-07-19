@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
+import dev.nilswitt.mission_manager.data.entities.Mission;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
 import dev.nilswitt.mission_manager.events.ChangeType;
 import dev.nilswitt.mission_manager.events.EntityChangedEvent;
@@ -23,6 +25,7 @@ import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -37,33 +40,7 @@ class EntityChangeBroadcasterTest {
 
     @Test
     void entityChangedEventIsBroadcastToStompSubscribers() throws Exception {
-        WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
-        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-        converter.setObjectMapper(new ObjectMapper().registerModule(new JavaTimeModule()));
-        stompClient.setMessageConverter(converter);
-
-        StompSession session = stompClient
-            .connectAsync(
-                "ws://localhost:" + port + "/api/ws",
-                new StompSessionHandlerAdapter() {
-                    @Override
-                    public void handleException(
-                        StompSession session,
-                        StompCommand command,
-                        StompHeaders headers,
-                        byte[] payload,
-                        Throwable exception
-                    ) {
-                        exception.printStackTrace();
-                    }
-
-                    @Override
-                    public void handleTransportError(StompSession session, Throwable exception) {
-                        exception.printStackTrace();
-                    }
-                }
-            )
-            .get(5, TimeUnit.SECONDS);
+        StompSession session = connect();
 
         BlockingQueue<EntityUpdateMessage> received = new LinkedBlockingQueue<>();
         session.subscribe(
@@ -98,5 +75,78 @@ class EntityChangeBroadcasterTest {
         assertThat(message.changeType()).isEqualTo(ChangeType.CREATED);
 
         session.disconnect();
+    }
+
+    @Test
+    void logBookEntryChangedEventIsAlsoBroadcastToItsMissionTopic() throws Exception {
+        StompSession session = connect();
+
+        BlockingQueue<EntityUpdateMessage> received = new LinkedBlockingQueue<>();
+        UUID missionId = UUID.randomUUID();
+        session.subscribe(
+            "/topic/missions/" + missionId,
+            new StompFrameHandler() {
+                @Override
+                public Type getPayloadType(StompHeaders headers) {
+                    return EntityUpdateMessage.class;
+                }
+
+                @Override
+                public void handleFrame(StompHeaders headers, Object payload) {
+                    received.add((EntityUpdateMessage) payload);
+                }
+            }
+        );
+
+        Mission mission = new Mission();
+        ReflectionTestUtils.setField(mission, "id", missionId);
+        LogBookEntry entry = new LogBookEntry();
+        entry.setMission(mission);
+        UUID entryId = UUID.randomUUID();
+
+        // The STOMP SUBSCRIBE frame above is fire-and-forget, so re-publish until the broker has
+        // finished registering the subscription rather than relying on a fixed sleep.
+        EntityUpdateMessage message = null;
+        long deadline = System.currentTimeMillis() + 5000;
+        while (message == null && System.currentTimeMillis() < deadline) {
+            applicationEventPublisher.publishEvent(new EntityChangedEvent<>("LogBookEntry", entry, ChangeType.CREATED, entryId));
+            message = received.poll(300, TimeUnit.MILLISECONDS);
+        }
+        assertThat(message).isNotNull();
+        assertThat(message.entityName()).isEqualTo("LogBookEntry");
+        assertThat(message.id()).isEqualTo(entryId);
+        assertThat(message.changeType()).isEqualTo(ChangeType.CREATED);
+
+        session.disconnect();
+    }
+
+    private StompSession connect() throws Exception {
+        WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
+        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+        converter.setObjectMapper(new ObjectMapper().registerModule(new JavaTimeModule()));
+        stompClient.setMessageConverter(converter);
+
+        return stompClient
+            .connectAsync(
+                "ws://localhost:" + port + "/api/ws",
+                new StompSessionHandlerAdapter() {
+                    @Override
+                    public void handleException(
+                        StompSession session,
+                        StompCommand command,
+                        StompHeaders headers,
+                        byte[] payload,
+                        Throwable exception
+                    ) {
+                        exception.printStackTrace();
+                    }
+
+                    @Override
+                    public void handleTransportError(StompSession session, Throwable exception) {
+                        exception.printStackTrace();
+                    }
+                }
+            )
+            .get(5, TimeUnit.SECONDS);
     }
 }

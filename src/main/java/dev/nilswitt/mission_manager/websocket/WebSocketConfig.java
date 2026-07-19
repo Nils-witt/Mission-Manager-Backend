@@ -9,8 +9,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 /**
  * Exposes a STOMP endpoint at {@code /api/ws} (already permitted in {@link
  * dev.nilswitt.mission_manager.security.SecurityConfig}) that any StompJS-compatible client can
- * connect to. Entity change notifications are broadcast on {@code /topic/entities/{EntityName}}
- * by {@link EntityChangeBroadcaster}.
+ * connect to. Entity change notifications are broadcast on {@code /topic/entities/{EntityName}},
+ * and mission log book (update) changes are additionally broadcast on {@code
+ * /topic/missions/{missionId}}, by {@link EntityChangeBroadcaster}.
  */
 @Configuration
 @EnableWebSocketMessageBroker

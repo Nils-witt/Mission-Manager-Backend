@@ -1,5 +1,6 @@
 package dev.nilswitt.mission_manager.websocket;
 
+import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
 import dev.nilswitt.mission_manager.events.EntityChangedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -16,6 +17,10 @@ import java.time.Instant;
  * {@link dev.nilswitt.mission_manager.events.EntityEventListener} publishes on JPA {@code
  * @Post*} callbacks, which fire mid-flush, before the enclosing transaction is guaranteed to
  * commit.
+ *
+ * <p>{@link LogBookEntry} changes (i.e. mission "updates") are additionally relayed onto {@code
+ * /topic/missions/{missionId}} so clients can subscribe to a single mission's update stream
+ * instead of filtering the global {@code /topic/entities/LogBookEntry} feed themselves.
  */
 @Component
 public class EntityChangeBroadcaster {
@@ -43,5 +48,9 @@ public class EntityChangeBroadcaster {
     private void broadcast(EntityChangedEvent<?> event) {
         EntityUpdateMessage message = new EntityUpdateMessage(event.className(), event.id(), event.changeType(), Instant.now());
         messagingTemplate.convertAndSend("/topic/entities/" + event.className(), message);
+
+        if (event.entity() instanceof LogBookEntry logBookEntry && logBookEntry.getMission() != null) {
+            messagingTemplate.convertAndSend("/topic/missions/" + logBookEntry.getMission().getId(), message);
+        }
     }
 }
