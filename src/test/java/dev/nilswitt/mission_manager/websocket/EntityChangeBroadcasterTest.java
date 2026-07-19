@@ -7,13 +7,20 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
 import dev.nilswitt.mission_manager.data.entities.Mission;
 import dev.nilswitt.mission_manager.data.entities.Tenant;
+import dev.nilswitt.mission_manager.data.entities.User;
+import dev.nilswitt.mission_manager.data.services.MissionService;
+import dev.nilswitt.mission_manager.data.services.TenantService;
+import dev.nilswitt.mission_manager.data.services.UserService;
 import dev.nilswitt.mission_manager.events.ChangeType;
 import dev.nilswitt.mission_manager.events.EntityChangedEvent;
+import dev.nilswitt.mission_manager.security.jwt.JWTTokenComponent;
 import java.lang.reflect.Type;
+import java.util.LinkedHashSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +32,7 @@ import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -38,9 +45,21 @@ class EntityChangeBroadcasterTest {
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Autowired
+    private TenantService tenantService;
+
+    @Autowired
+    private MissionService missionService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JWTTokenComponent jwtTokenComponent;
+
     @Test
     void entityChangedEventIsBroadcastToStompSubscribers() throws Exception {
-        StompSession session = connect();
+        StompSession session = connect(null, new LinkedBlockingQueue<>());
 
         BlockingQueue<EntityUpdateMessage> received = new LinkedBlockingQueue<>();
         session.subscribe(
@@ -78,11 +97,20 @@ class EntityChangeBroadcasterTest {
     }
 
     @Test
-    void logBookEntryChangedEventIsAlsoBroadcastToItsMissionTopic() throws Exception {
-        StompSession session = connect();
+    void logBookEntryChangedEventIsBroadcastToAUserWithViewAccessToTheMission() throws Exception {
+        Tenant tenant = tenantService.save(new Tenant("Broadcaster Test Tenant " + System.nanoTime()));
+        Mission mission = new Mission();
+        mission.setName("Broadcaster Test Mission " + System.nanoTime());
+        mission.setTenant(tenant);
+        mission = missionService.save(mission);
+
+        User user = newUser("broadcaster-view-" + System.nanoTime(), tenant);
+        String token = jwtTokenComponent.generateToken(user, UUID.randomUUID());
+
+        StompSession session = connect(token, new LinkedBlockingQueue<>());
 
         BlockingQueue<EntityUpdateMessage> received = new LinkedBlockingQueue<>();
-        UUID missionId = UUID.randomUUID();
+        UUID missionId = mission.getId();
         session.subscribe(
             "/topic/missions/" + missionId,
             new StompFrameHandler() {
@@ -98,8 +126,6 @@ class EntityChangeBroadcasterTest {
             }
         );
 
-        Mission mission = new Mission();
-        ReflectionTestUtils.setField(mission, "id", missionId);
         LogBookEntry entry = new LogBookEntry();
         entry.setMission(mission);
         UUID entryId = UUID.randomUUID();
@@ -120,15 +146,94 @@ class EntityChangeBroadcasterTest {
         session.disconnect();
     }
 
-    private StompSession connect() throws Exception {
+    @Test
+    void subscribingToAMissionTopicWithoutAuthenticationIsRejected() throws Exception {
+        Tenant tenant = tenantService.save(new Tenant("Broadcaster Reject Tenant " + System.nanoTime()));
+        Mission mission = new Mission();
+        mission.setName("Broadcaster Reject Mission " + System.nanoTime());
+        mission.setTenant(tenant);
+        mission = missionService.save(mission);
+
+        BlockingQueue<Throwable> errors = new LinkedBlockingQueue<>();
+        StompSession session = connect(null, errors);
+
+        BlockingQueue<EntityUpdateMessage> received = new LinkedBlockingQueue<>();
+        session.subscribe(
+            "/topic/missions/" + mission.getId(),
+            new StompFrameHandler() {
+                @Override
+                public Type getPayloadType(StompHeaders headers) {
+                    return EntityUpdateMessage.class;
+                }
+
+                @Override
+                public void handleFrame(StompHeaders headers, Object payload) {
+                    received.add((EntityUpdateMessage) payload);
+                }
+            }
+        );
+
+        assertThat(errors.poll(5, TimeUnit.SECONDS)).isNotNull();
+
+        LogBookEntry entry = new LogBookEntry();
+        entry.setMission(mission);
+        applicationEventPublisher.publishEvent(new EntityChangedEvent<>("LogBookEntry", entry, ChangeType.CREATED, UUID.randomUUID()));
+        assertThat(received.poll(1, TimeUnit.SECONDS)).isNull();
+    }
+
+    @Test
+    void subscribingToAMissionTopicWithoutViewAccessIsRejected() throws Exception {
+        Tenant missionTenant = tenantService.save(new Tenant("Broadcaster Owner Tenant " + System.nanoTime()));
+        Tenant otherTenant = tenantService.save(new Tenant("Broadcaster Outsider Tenant " + System.nanoTime()));
+        Mission mission = new Mission();
+        mission.setName("Broadcaster Private Mission " + System.nanoTime());
+        mission.setTenant(missionTenant);
+        mission = missionService.save(mission);
+
+        User outsider = newUser("broadcaster-outsider-" + System.nanoTime(), otherTenant);
+        String token = jwtTokenComponent.generateToken(outsider, UUID.randomUUID());
+
+        BlockingQueue<Throwable> errors = new LinkedBlockingQueue<>();
+        StompSession session = connect(token, errors);
+
+        session.subscribe("/topic/missions/" + mission.getId(), new StompFrameHandler() {
+            @Override
+            public Type getPayloadType(StompHeaders headers) {
+                return EntityUpdateMessage.class;
+            }
+
+            @Override
+            public void handleFrame(StompHeaders headers, Object payload) {
+                // no-op: this subscription is expected to be rejected before any frame arrives
+            }
+        });
+
+        assertThat(errors.poll(5, TimeUnit.SECONDS)).isNotNull();
+    }
+
+    private User newUser(String username, Tenant tenant) {
+        User user = new User(username, username + "@example.test", "Test", "User");
+        user.setPrimaryTenant(tenant);
+        user.setTenants(new LinkedHashSet<>(java.util.List.of(tenant)));
+        return userService.save(user);
+    }
+
+    private StompSession connect(@Nullable String bearerToken, BlockingQueue<Throwable> errors) throws Exception {
         WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
         MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
         converter.setObjectMapper(new ObjectMapper().registerModule(new JavaTimeModule()));
         stompClient.setMessageConverter(converter);
 
+        StompHeaders connectHeaders = new StompHeaders();
+        if (bearerToken != null) {
+            connectHeaders.add("Authorization", "Bearer " + bearerToken);
+        }
+
         return stompClient
             .connectAsync(
                 "ws://localhost:" + port + "/api/ws",
+                new WebSocketHttpHeaders(),
+                connectHeaders,
                 new StompSessionHandlerAdapter() {
                     @Override
                     public void handleException(
@@ -138,12 +243,12 @@ class EntityChangeBroadcasterTest {
                         byte[] payload,
                         Throwable exception
                     ) {
-                        exception.printStackTrace();
+                        errors.add(exception);
                     }
 
                     @Override
                     public void handleTransportError(StompSession session, Throwable exception) {
-                        exception.printStackTrace();
+                        errors.add(exception);
                     }
                 }
             )
