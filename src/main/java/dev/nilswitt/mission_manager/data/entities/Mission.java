@@ -48,18 +48,30 @@ public class Mission extends AbstractEntity {
     private Set<LogBookEntry> logBookEntries = new LinkedHashSet<>();
 
     public Double getLatitude() {
+        if (this.location == null) {
+            this.setLocation(new EmbeddableLocation());
+        }
         return location.getLatitude();
     }
 
     public void setLatitude(Double latitude) {
+        if (this.location == null) {
+            this.setLocation(new EmbeddableLocation());
+        }
         location.setLatitude(latitude);
     }
 
     public Double getLongitude() {
+        if (this.location == null) {
+            this.setLocation(new EmbeddableLocation());
+        }
         return location.getLongitude();
     }
 
     public void setLongitude(Double longitude) {
+        if (this.location == null) {
+            this.setLocation(new EmbeddableLocation());
+        }
         location.setLongitude(longitude);
     }
 }

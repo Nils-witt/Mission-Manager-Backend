@@ -1,9 +1,6 @@
 package dev.nilswitt.mission_manager.data.services;
 
-import com.eatthepath.pushy.apns.ApnsClient;
-import com.eatthepath.pushy.apns.ApnsClientBuilder;
-import com.eatthepath.pushy.apns.ApnsPushNotification;
-import com.eatthepath.pushy.apns.PushNotificationResponse;
+import com.eatthepath.pushy.apns.*;
 import com.eatthepath.pushy.apns.auth.ApnsSigningKey;
 import com.eatthepath.pushy.apns.util.ApnsPayloadBuilder;
 import com.eatthepath.pushy.apns.util.SimpleApnsPayloadBuilder;
@@ -15,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.time.Instant;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -74,6 +73,38 @@ public class ApnsService {
 
         String token = TokenUtil.sanitizeTokenString(deviceToken);
         ApnsPushNotification notification = new SimpleApnsPushNotification(token, topic, payloadBuilder.build());
+
+        try {
+            PushNotificationResponse<ApnsPushNotification> response = apnsClient.sendNotification(notification).get(10, TimeUnit.SECONDS);
+
+            if (response.isAccepted()) {
+                return new PushResult(true, false, null);
+            }
+
+            String rejectionReason = response.getRejectionReason().orElse("unknown");
+            boolean tokenInvalid = response.getTokenInvalidationTimestamp().isPresent();
+            log.warn("APNs rejected push to token '{}': {}", token, rejectionReason);
+            return new PushResult(false, tokenInvalid, rejectionReason);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while sending APNs push to token '{}'", token, e);
+            return new PushResult(false, false, "interrupted");
+        } catch (ExecutionException | TimeoutException e) {
+            log.error("Failed to send APNs push to token '{}'", token, e);
+            return new PushResult(false, false, "send failed");
+        }
+    }
+
+    public PushResult sendBGPushUpdatedMission(String deviceToken, String missionId) {
+        if (apnsClient == null) {
+            return new PushResult(false, false, "APNs is not configured");
+        }
+
+        String payload = "{ \"aps\": { \"content-available\": 1 }, \"missionId\": \"" + missionId + "\" }";
+        String token = TokenUtil.sanitizeTokenString(deviceToken);
+
+        ApnsPushNotification notification = new SimpleApnsPushNotification(token, topic, payload, Instant.ofEpochMilli(new Date().getTime() + 3600000), DeliveryPriority.CONSERVE_POWER, PushType.BACKGROUND);
+
 
         try {
             PushNotificationResponse<ApnsPushNotification> response = apnsClient.sendNotification(notification).get(10, TimeUnit.SECONDS);

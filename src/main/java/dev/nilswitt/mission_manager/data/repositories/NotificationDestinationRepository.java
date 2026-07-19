@@ -11,6 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface NotificationDestinationRepository
-    extends JpaRepository<NotificationDestination, UUID>, JpaSpecificationExecutor<NotificationDestination> {
+        extends JpaRepository<NotificationDestination, UUID>, JpaSpecificationExecutor<NotificationDestination> {
     List<NotificationDestination> findByUser(User user);
+
+    List<NotificationDestination> findAllByDeviceType(NotificationDestination.DeviceTypeEnum deviceType);
 }

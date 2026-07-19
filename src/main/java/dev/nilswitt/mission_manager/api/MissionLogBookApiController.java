@@ -1,13 +1,10 @@
 package dev.nilswitt.mission_manager.api;
 
 import dev.nilswitt.mission_manager.api.dto.*;
-import dev.nilswitt.mission_manager.data.entities.EmbeddableLocation;
-import dev.nilswitt.mission_manager.data.entities.LogBookEntry;
-import dev.nilswitt.mission_manager.data.entities.Mission;
-import dev.nilswitt.mission_manager.data.entities.StoredFile;
-import dev.nilswitt.mission_manager.data.entities.User;
+import dev.nilswitt.mission_manager.data.entities.*;
 import dev.nilswitt.mission_manager.data.services.LogBookEntryService;
 import dev.nilswitt.mission_manager.data.services.MissionService;
+import dev.nilswitt.mission_manager.data.services.PushNotificationService;
 import dev.nilswitt.mission_manager.data.services.StoredFileService;
 import dev.nilswitt.mission_manager.security.PermissionVerifier;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,17 +39,19 @@ public class MissionLogBookApiController {
     private final LogBookEntryService logBookEntryService;
     private final StoredFileService storedFileService;
     private final PermissionVerifier permissionVerifier;
+    private final PushNotificationService pushNotificationService;
 
     public MissionLogBookApiController(
             MissionService missionService,
             LogBookEntryService logBookEntryService,
             StoredFileService storedFileService,
-            PermissionVerifier permissionVerifier
-    ) {
+            PermissionVerifier permissionVerifier,
+            PushNotificationService pushNotificationService) {
         this.missionService = missionService;
         this.logBookEntryService = logBookEntryService;
         this.storedFileService = storedFileService;
         this.permissionVerifier = permissionVerifier;
+        this.pushNotificationService = pushNotificationService;
     }
 
     @GetMapping
@@ -92,7 +91,7 @@ public class MissionLogBookApiController {
                 return existing.getMission().getId().equals(mission.getId())
                         ? ResponseEntity.ok(LogBookEntryResponse.from(existing, permissionVerifier.getScopes(mission, currentUser)))
                         : ResponseEntity.status(HttpStatus.CONFLICT)
-                            .body(new ErrorResponse("This submission id was already used for a different mission."));
+                        .body(new ErrorResponse("This submission id was already used for a different mission."));
             }
         }
 
@@ -113,6 +112,8 @@ public class MissionLogBookApiController {
                     .orElseThrow(() -> ex);
             return ResponseEntity.ok(LogBookEntryResponse.from(existing, permissionVerifier.getScopes(mission, currentUser)));
         }
+
+        pushNotificationService.sendMissionUpdate(mission.getId().toString());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(LogBookEntryResponse.from(entry, permissionVerifier.getScopes(mission, currentUser)));

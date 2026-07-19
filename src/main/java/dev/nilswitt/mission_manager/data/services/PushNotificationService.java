@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Resolves the recipients for a push notification (a single user, everyone in a tenant, or
@@ -53,9 +54,9 @@ public class PushNotificationService {
     public void sendToDestination(NotificationDestination destination, String title, String body) {
         if (destination.getDeviceType() != NotificationDestination.DeviceTypeEnum.IOS) {
             log.debug(
-                "Skipping push to destination '{}': device type '{}' has no push transport yet",
-                destination.getId(),
-                destination.getDeviceType()
+                    "Skipping push to destination '{}': device type '{}' has no push transport yet",
+                    destination.getId(),
+                    destination.getDeviceType()
             );
             return;
         }
@@ -63,8 +64,22 @@ public class PushNotificationService {
         ApnsService.PushResult result = apnsService.send(destination.getToken(), title, body);
         if (!result.accepted() && result.tokenInvalid()) {
             log.info("Deregistering notification destination '{}': APNs reports the token is no longer valid ({})",
-                destination.getId(), result.rejectionReason());
+                    destination.getId(), result.rejectionReason());
             notificationDestinationService.deleteById(destination.getId());
+        }
+    }
+
+    public void sendMissionUpdate(String missionId) {
+
+        List<NotificationDestination> destinations = notificationDestinationService.findByType(NotificationDestination.DeviceTypeEnum.IOS);
+        log.info("Sending notifications for mission id '{}' '{}' devices", missionId, destinations.size());
+        for (NotificationDestination destination : destinations) {
+            ApnsService.PushResult result = apnsService.sendBGPushUpdatedMission(destination.getToken(), missionId);
+            if (!result.accepted() && result.tokenInvalid()) {
+                log.info("Deregistering notification destination '{}': APNs reports the token is no longer valid ({})",
+                        destination.getId(), result.rejectionReason());
+                notificationDestinationService.deleteById(destination.getId());
+            }
         }
     }
 }

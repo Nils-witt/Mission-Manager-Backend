@@ -40,4 +40,8 @@ public class NotificationDestinationService {
     public void deleteById(UUID id) {
         notificationDestinationRepository.deleteById(id);
     }
+
+    public List<NotificationDestination> findByType(NotificationDestination.DeviceTypeEnum deviceTypeEnum) {
+        return notificationDestinationRepository.findAllByDeviceType(deviceTypeEnum);
+    }
 }
